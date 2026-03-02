@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal } from 'react-native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+import { Ionicons } from '@expo/vector-icons';
 
 const HamburgerMenu = ({ navigation }) => {
   const [modalVisible, setModalVisible] = useState(false);

@@ -3,9 +3,9 @@ import { View, Modal, Text, TextInput, TouchableOpacity, StyleSheet } from 'reac
 import EditItemListing from './EditItemListing';
 
 import { useSelector, useDispatch } from 'react-redux';
-import { store, setItemQuantity, addGroceryItem, removeGroceryItem, addPantryItem, removePantryItem } from '../redux/pantryStore';
+import { setItemQuantity } from '../redux/pantryStore';
 
-const EditModal = ({ visible, onClose, name, quantity}) => {
+const EditModal = ({ visible = true, onClose, name, quantity }) => {
   const [number, setNumber] = useState(parseInt(quantity, 10) || 0);
 
   const currentPage = useSelector(state => state.currentPage);
@@ -41,7 +41,7 @@ const EditModal = ({ visible, onClose, name, quantity}) => {
   return (
     <Modal
       transparent
-      visible={visible}
+      visible={visible !== false}
       animationType="slide"
       onRequestClose={onClose}
     >

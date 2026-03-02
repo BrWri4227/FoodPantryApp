@@ -3,10 +3,12 @@ import { View, Text, StyleSheet, ScrollView, Image, ActivityIndicator, Linking }
 import { useRoute } from '@react-navigation/native';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
-import { useSelector } from 'react-redux';
-import { addGroceryItem, store } from '../redux/pantryStore';
+import { useDispatch } from 'react-redux';
+import { addGroceryItem } from '../redux/pantryStore';
+
 const RecipeContent = () => {
   const route = useRoute();
+  const dispatch = useDispatch();
   const { recipeData } = route.params;
   // console.log(recipeData);
   // const apiKey = `d0eb5aa1af624179b18615d5122b9d27`
@@ -30,18 +32,14 @@ const RecipeContent = () => {
   }
   // const addMissingIngredients = () => {
   const addMissingIngredients = () => {
-    recipeData.missedIngredients.forEach(ingredient => {
-      // console.log(ingredient.original, ingredient.amount);
-      // console.log(ingredientName);
-      store.dispatch(addGroceryItem({
-        id: Math.random().toString(),
+    recipeData.missedIngredients.forEach((ingredient) => {
+      dispatch(addGroceryItem({
+        id: Math.random().toString(36).slice(2),
         name: ingredient.name,
-        quantity: ingredient.amount,
+        quantity: String(ingredient.amount ?? 1),
       }));
-    }
-    );
-
-  }
+    });
+  };
 
   useEffect(() => {
     getRecipeInfo();

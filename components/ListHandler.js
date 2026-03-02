@@ -3,7 +3,7 @@ import { View, StyleSheet, FlatList } from 'react-native';
 import IngredientListing from './IngredientListing';
 
 import { useSelector, useDispatch } from 'react-redux';
-import { store, addGroceryItem, removeGroceryItem, addPantryItem, removePantryItem, setItemQuantity } from '../redux/pantryStore';
+import { addGroceryItem, removeGroceryItem, addPantryItem, removePantryItem, setItemQuantity } from '../redux/pantryStore';
 import AddButton from './addButton';
 
 import { Snackbar } from 'react-native-paper';
@@ -13,25 +13,20 @@ const ListHandler = ({ listType }) => {
   //redux stuff
   const dispatch = useDispatch();
 
-  const [snackbarVisible, setSnackbarVisible] = useState(false);
+  const [snackbarVisible, setSnackbarVisible] = useState({ visible: false, item: null });
   const toggleSnackbar = (item) => {
-    setSnackbarVisible({visible: true, item});
+    setSnackbarVisible({ visible: true, item });
   };
 
   const handleUndoPress = (item) => () => {
-     
-    console.log(item.name)
-
-    let newIndex = generateUniqueIndex([...ingredientArray.map(item => item.id), ...otherList.map(item => item.id)]);
-
-    if(listType == "pantry"){
+    if (!item) return;
+    const newIndex = generateUniqueIndex([...ingredientArray.map((i) => i.id), ...otherList.map((i) => i.id)]);
+    if (listType === 'pantry') {
       dispatch(addPantryItem({ id: newIndex, name: item.name, quantity: item.quantity }));
-    }
-    else{
+    } else {
       dispatch(addGroceryItem({ id: newIndex, name: item.name, quantity: item.quantity }));
     }
-
-    setSnackbarVisible(false);
+    setSnackbarVisible({ visible: false, item: null });
   };
 
   let ingredientArray;
@@ -81,37 +76,26 @@ const ListHandler = ({ listType }) => {
       
     let newIndex = generateUniqueIndex([...ingredientArray.map(item => item.id), ...otherList.map(item => item.id)]);
 
-      if(listType == "pantry"){
-
-        // if already exists, simply add the quantity
-        if(containsItem(otherList, item.name)){
-
+      if (listType === 'pantry') {
+        const qty = parseInt(item.quantity, 10) || 1;
+        if (containsItem(otherList, item.name)) {
           const matchedItem = otherList.find((listItem) => listItem.name === item.name);
           if (matchedItem) {
-            handleQuantityChange(item.name, parseInt(matchedItem.quantity)+1, 'Shopping List');
+            handleQuantityChange(item.name, parseInt(matchedItem.quantity, 10) + qty, 'Shopping List');
           }
-
+        } else {
+          dispatch(addGroceryItem({ id: newIndex, name: item.name, quantity: String(qty) }));
         }
-        else{ // if doesnt exist, add it to the list
-          dispatch(addGroceryItem({ id: newIndex, name: item.name, quantity: 1 }));
-        }
-
-      }
-      else{
-
-        // if already exists, simply add the quantity
-        if(containsItem(otherList, item.name)){
-
+        dispatch(removePantryItem(item));
+      } else {
+        if (containsItem(otherList, item.name)) {
           const matchedItem = otherList.find((listItem) => listItem.name === item.name);
           if (matchedItem) {
-            handleQuantityChange(item.name, parseInt(matchedItem.quantity)+parseInt(item.quantity), 'Pantry');
+            handleQuantityChange(item.name, parseInt(matchedItem.quantity, 10) + parseInt(item.quantity, 10), 'Pantry');
           }
-          
-        }
-        else{ // if doesnt exist, add it to the list
+        } else {
           dispatch(addPantryItem({ id: newIndex, name: item.name, quantity: item.quantity }));
         }
-
         dispatch(removeGroceryItem(item));
       }
     };
@@ -142,7 +126,7 @@ const ListHandler = ({ listType }) => {
       <View style={styles.snackContainer}>
         <Snackbar
           visible={snackbarVisible.visible}
-          onDismiss={() => setSnackbarVisible({ ...snackbarVisible, visible: false })}
+          onDismiss={() => setSnackbarVisible({ visible: false, item: null })}
           action={{ label: 'Undo', onPress: handleUndoPress(snackbarVisible.item), }}>
           {snackbarVisible.item && `${snackbarVisible.item.name} has been deleted.`}
         </Snackbar>

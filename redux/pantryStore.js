@@ -42,12 +42,13 @@ const reducer = (state = initialState, action) => {
       case 'INCREMENT_ITEM_QUANTITY':
         const { item, addedQuantity, itemType } = action.payload;
         const itemsKey = itemType === 'grocery' ? 'groceryItems' : 'pantryItems';
+        const targetId = item.id;
         return {
           ...state,
-          [itemsKey]: state[itemsKey].map(item =>
-            item.id === itemId ? 
-              { ...item, quantity: String(parseInt(item.quantity) + addedQuantity) } : 
-              item
+          [itemsKey]: state[itemsKey].map(it =>
+            it.id === targetId
+              ? { ...it, quantity: String(parseInt(it.quantity, 10) + addedQuantity) }
+              : it
           ),
         };
         case 'SET_ITEM_QUANTITY':
@@ -71,7 +72,7 @@ const reducer = (state = initialState, action) => {
           case 'LOADED':
             return {
               ...state,
-              loaded: true,
+              loaded: action.payload,
             };
         default:
       return state;
