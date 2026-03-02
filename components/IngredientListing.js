@@ -5,8 +5,8 @@
   import Swipeable from 'react-native-gesture-handler/Swipeable';
   import EditModal from './EditModal';
 
-  import Ionicons from 'react-native-vector-icons/Ionicons';
-  import { useSelector, useDispatch } from 'react-redux';
+  import { Ionicons } from '@expo/vector-icons';
+  import { useSelector } from 'react-redux';
 
 
   const IngredientListing = ({ name, quantity, onDelete, sendToPantry, list }) => {
@@ -69,12 +69,12 @@
       );
     };
 
-    const renderRightActions = (sendToPantry) => {
+    const renderRightActions = () => {
       return (
-        <RectButton style={styles.rightAction}>
+        <RectButton style={styles.rightAction} onPress={sendToPantry}>
           <Text style={styles.actionText}>{rightText}</Text>
         </RectButton>
-      );  
+      );
     };
 
     const handleRightSwipe = () => {
@@ -98,7 +98,7 @@
 
       >
         <TouchableOpacity activeOpacity={1} onPress={() => openModal()}>
-        {isModalVisible && <EditModal onClose={closeModal} name={name} quantity={quantity} />}
+        {isModalVisible && <EditModal visible={true} onClose={closeModal} name={name} quantity={quantity} />}
         <View style={styles.container}>
           <Text style={styles.ingredient_name}>{name}</Text>
             <View style={styles.qtyContainer}>

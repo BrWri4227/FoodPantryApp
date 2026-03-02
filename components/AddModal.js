@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { View, Modal, Text, TextInput, TouchableOpacity, StyleSheet, ToastAndroid } from 'react-native';
+import { View, Modal, Text, TextInput, TouchableOpacity, StyleSheet, Platform, Alert, ToastAndroid } from 'react-native';
 import EditMenu from './EditMenu';
 
 import { useSelector, useDispatch } from 'react-redux';
-import { store, addGroceryItem, removeGroceryItem, addPantryItem, removePantryItem } from '../redux/pantryStore';
+import { addGroceryItem, addPantryItem } from '../redux/pantryStore';
 
 
-const AddModal = ({ visible, onClose }) => {
+const AddModal = ({ visible = true, onClose }) => {
   const [input, setInput] = useState('');
   const [suggestions, setSuggestions] = useState([]);
   const [suggestionContainerHeight, setSuggestionContainerHeight] = useState(0);
@@ -14,10 +14,9 @@ const AddModal = ({ visible, onClose }) => {
   const [number, setNumber] = useState(0);
 
   const dispatch = useDispatch();
-  const currentPage = useSelector(state => state.currentPage);
-
-  groceryArray = useSelector(state => state.groceryItems);
-  pantryArray = useSelector(state => state.pantryItems);
+  const currentPage = useSelector((state) => state.currentPage);
+  const groceryArray = useSelector((state) => state.groceryItems);
+  const pantryArray = useSelector((state) => state.pantryItems);
 
   const generateUniqueIndex = (existingIndices) => {
     let newIndex = existingIndices.length + 1;
@@ -47,18 +46,26 @@ const AddModal = ({ visible, onClose }) => {
     let newIndex = generateUniqueIndex([...groceryArray.map(item => item.id), ...pantryArray.map(item => item.id)]);
 
     const whitespaceRegex = /^\s*$/;
+    const showMessage = (msg) => {
+      if (Platform.OS === 'android' && typeof ToastAndroid !== 'undefined') {
+        ToastAndroid.show(msg, ToastAndroid.SHORT);
+      } else {
+        Alert.alert('', msg);
+      }
+    };
 
-    if(whitespaceRegex.test(input)){
-      ToastAndroid.show('Name can\'t be blank', ToastAndroid.SHORT);
+    if (whitespaceRegex.test(input)) {
+      showMessage("Name can't be blank");
+      return;
     }
-    else if(number <= 0){
-      ToastAndroid.show('Quantity must be 1 or higher', ToastAndroid.SHORT);
+    if (number <= 0) {
+      showMessage('Quantity must be 1 or higher');
+      return;
     }
-    else if(currentPage == 'Shopping List'){
-      dispatch(addGroceryItem({ id: newIndex, name: input, quantity: number }));
-    }
-    else if(currentPage == 'Pantry'){
-      dispatch(addPantryItem({ id: newIndex, name: input, quantity: number }));
+    else if (currentPage === 'Shopping List') {
+      dispatch(addGroceryItem({ id: newIndex, name: input.trim(), quantity: String(number) }));
+    } else if (currentPage === 'Pantry') {
+      dispatch(addPantryItem({ id: newIndex, name: input.trim(), quantity: String(number) }));
 
 
     }
@@ -75,7 +82,7 @@ const AddModal = ({ visible, onClose }) => {
   return (
     <Modal
       transparent
-      visible={visible}
+      visible={visible !== false}
       animationType="slide"
       onRequestClose={onClose}
     >

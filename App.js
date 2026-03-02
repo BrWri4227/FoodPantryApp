@@ -2,7 +2,7 @@ import { React, useEffect } from 'react';
 import { NavigationContainer, useFocusEffect } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+import { Ionicons } from '@expo/vector-icons';
 
 /* Bottom Tab Navigation Screens */
 import ShoppingList from './screens/ShoppingListScreen';
@@ -24,10 +24,9 @@ import RecipeContent from './components/RecipeContent';
 
 /* firebase */
 import { getFirestore, collection, addDoc, query, orderBy, limit, getDocs, deleteDoc } from 'firebase/firestore';
-import firebaseConfig from './firebaseConfig';
+import app from './firebaseConfig';
 
-
-const db = getFirestore(firebaseConfig);
+const db = getFirestore(app);
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -47,40 +46,30 @@ const BottomTabNavigator = () => {
   }
 
   const uploadGroceryItemsToFirestore = async () => {
-    console.log('upload attempt')
-    const groceryCollectionRef = collection(db, 'shopping');
-
-    // Clear the "shopping" collection
-    const querySnapshot = await getDocs(groceryCollectionRef);
-    querySnapshot.forEach(async (doc) => {
-      await deleteDoc(doc.ref);
-    });
-
-    // Upload grocery items from Redux store to Firestore
-    groceryItems.forEach(async (item) => {
-      await addDoc(groceryCollectionRef, item);
-    });
-
-
-  }
+    try {
+      const groceryCollectionRef = collection(db, 'shopping');
+      const querySnapshot = await getDocs(groceryCollectionRef);
+      await Promise.all(querySnapshot.docs.map((doc) => deleteDoc(doc.ref)));
+      await Promise.all(
+        groceryItems.map((item) => addDoc(groceryCollectionRef, item))
+      );
+    } catch (err) {
+      console.error('Failed to upload grocery items:', err);
+    }
+  };
 
   const uploadPantryItemsToFirestore = async () => {
-    console.log('upload attempt')
-    const pantryCollectionRef = collection(db, 'pantry');
-
-    // Clear the "shopping" collection
-    const querySnapshot = await getDocs(pantryCollectionRef);
-    querySnapshot.forEach(async (doc) => {
-      await deleteDoc(doc.ref);
-    });
-
-    // Upload grocery items from Redux store to Firestore
-    pantryItems.forEach(async (item) => {
-      await addDoc(pantryCollectionRef, item);
-    });
-
-
-  }
+    try {
+      const pantryCollectionRef = collection(db, 'pantry');
+      const querySnapshot = await getDocs(pantryCollectionRef);
+      await Promise.all(querySnapshot.docs.map((doc) => deleteDoc(doc.ref)));
+      await Promise.all(
+        pantryItems.map((item) => addDoc(pantryCollectionRef, item))
+      );
+    } catch (err) {
+      console.error('Failed to upload pantry items:', err);
+    }
+  };
 
   useEffect(() => {
     const fetchRecentEntries = async () => {
@@ -98,27 +87,11 @@ const BottomTabNavigator = () => {
         groceryData.push({ id: doc.id, ...doc.data() });
       });
 
-      pantryData.forEach(obj => {
-        console.log(obj);
-
-        if (loaded === 'false') { 
-          loadPantryItem(obj)
-          console.log('Loading pantry.')
-        }
-      });
-
-      groceryData.forEach(obj => {
-        console.log(obj);
-
-        if (loaded === 'false') { 
-          loadGroceryItem(obj)
-          console.log('Loading grocery.')
-        }
-      });
-
-      dispatch(setLoad('true'));
-      console.log('Use effect.')
-      console.log(loaded);
+      if (loaded === 'false') {
+        pantryData.forEach((obj) => loadPantryItem(obj));
+        groceryData.forEach((obj) => loadGroceryItem(obj));
+        dispatch(setLoad('true'));
+      }
     };
 
     fetchRecentEntries();
