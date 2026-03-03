@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, Image } from 'react-native';
 import { StyleSheet } from 'react-native';
 import { useEffect } from 'react';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+import { Ionicons } from '@expo/vector-icons';
 
 const RecipeListing = ({ recipeData }) => {
     const recipe = recipeData;

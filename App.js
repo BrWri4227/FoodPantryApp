@@ -1,30 +1,24 @@
-import { React, useEffect } from 'react';
-import { NavigationContainer, useFocusEffect } from '@react-navigation/native';
+import React, { useEffect, useCallback } from 'react';
+import { StatusBar } from 'react-native';
+import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { PaperProvider } from 'react-native-paper';
 
-/* Bottom Tab Navigation Screens */
 import ShoppingList from './screens/ShoppingListScreen';
 import Pantry from './screens/PantryScreen';
 import Recipes from './screens/RecipesScreen';
-
-/* Dropdown Screens */
 import Presets from './screens/PresetScreen';
 import Settings from './screens/SettingsScreen';
 import About from './screens/AboutScreen';
-
-/* Components */
 import HamburgerMenu from './components/HamburgerMenu';
-
-/* redux */
 import { Provider, useDispatch, useSelector } from 'react-redux';
-import { store, setCurrentPage, addPantryItem, addGroceryItem, setLoad } from './redux/pantryStore';
+import { store, setCurrentPage, addPantryItem, addGroceryItem, setLoad, setGroceryItems, setPantryItems } from './redux/pantryStore';
 import RecipeContent from './components/RecipeContent';
-
-/* firebase */
-import { getFirestore, collection, addDoc, query, orderBy, limit, getDocs, deleteDoc } from 'firebase/firestore';
+import { getFirestore, collection, getDocs, writeBatch, doc } from 'firebase/firestore';
 import app from './firebaseConfig';
+import { ThemeProvider, ThemeContext } from './context/ThemeContext';
 
 const db = getFirestore(app);
 
@@ -45,14 +39,18 @@ const BottomTabNavigator = () => {
     dispatch(addGroceryItem({ id: item.id, name: item.name, quantity: item.quantity }));
   }
 
+  const groceryCollectionRef = collection(db, 'shopping');
+  const pantryCollectionRef = collection(db, 'pantry');
+
   const uploadGroceryItemsToFirestore = async () => {
     try {
-      const groceryCollectionRef = collection(db, 'shopping');
-      const querySnapshot = await getDocs(groceryCollectionRef);
-      await Promise.all(querySnapshot.docs.map((doc) => deleteDoc(doc.ref)));
-      await Promise.all(
-        groceryItems.map((item) => addDoc(groceryCollectionRef, item))
-      );
+      const batch = writeBatch(db);
+      const snapshot = await getDocs(groceryCollectionRef);
+      snapshot.docs.forEach((d) => batch.delete(d.ref));
+      groceryItems.forEach((item) => {
+        batch.set(doc(groceryCollectionRef), item);
+      });
+      await batch.commit();
     } catch (err) {
       console.error('Failed to upload grocery items:', err);
     }
@@ -60,12 +58,13 @@ const BottomTabNavigator = () => {
 
   const uploadPantryItemsToFirestore = async () => {
     try {
-      const pantryCollectionRef = collection(db, 'pantry');
-      const querySnapshot = await getDocs(pantryCollectionRef);
-      await Promise.all(querySnapshot.docs.map((doc) => deleteDoc(doc.ref)));
-      await Promise.all(
-        pantryItems.map((item) => addDoc(pantryCollectionRef, item))
-      );
+      const batch = writeBatch(db);
+      const snapshot = await getDocs(pantryCollectionRef);
+      snapshot.docs.forEach((d) => batch.delete(d.ref));
+      pantryItems.forEach((item) => {
+        batch.set(doc(pantryCollectionRef), item);
+      });
+      await batch.commit();
     } catch (err) {
       console.error('Failed to upload pantry items:', err);
     }
@@ -73,27 +72,21 @@ const BottomTabNavigator = () => {
 
   useEffect(() => {
     const fetchRecentEntries = async () => {
-      const pantryQuery = query(collection(db, 'pantry'));
-      const querySnapshot = await getDocs(pantryQuery);
-      const pantryData = [];
-      querySnapshot.forEach((doc) => {
-        pantryData.push({ id: doc.id, ...doc.data() });
-      });
-
-      const groceryQuery = query(collection(db, 'shopping'));
-      const querySnapshot2 = await getDocs(groceryQuery);
-      const groceryData = [];
-      querySnapshot2.forEach((doc) => {
-        groceryData.push({ id: doc.id, ...doc.data() });
-      });
-
-      if (loaded === 'false') {
+      if (loaded !== 'false') return;
+      try {
+        const [pantrySnap, grocerySnap] = await Promise.all([
+          getDocs(collection(db, 'pantry')),
+          getDocs(collection(db, 'shopping')),
+        ]);
+        const pantryData = pantrySnap.docs.map((d) => ({ ...d.data(), id: d.data().id ?? d.id }));
+        const groceryData = grocerySnap.docs.map((d) => ({ ...d.data(), id: d.data().id ?? d.id }));
         pantryData.forEach((obj) => loadPantryItem(obj));
         groceryData.forEach((obj) => loadGroceryItem(obj));
         dispatch(setLoad('true'));
+      } catch (err) {
+        console.error('Failed to load data from Firestore:', err);
       }
     };
-
     fetchRecentEntries();
   }, [dispatch, loaded]); 
 
@@ -101,33 +94,23 @@ const BottomTabNavigator = () => {
     dispatch(setCurrentPage(routeName));
   };
 
+  const { colors: themeColors } = React.useContext(ThemeContext);
+
   return (
     <Tab.Navigator
       screenOptions={({ route, navigation }) => ({
         tabBarIcon: ({ focused, color, size }) => {
           let iconName;
-
-          if (route.name === 'Shopping List') {
-            iconName = focused ? 'list' : 'list-outline';
-          } else if (route.name === 'Pantry') {
-            iconName = focused ? 'archive' : 'archive-outline';
-          } else if (route.name === 'Recipes') {
-            iconName = focused ? 'book' : 'book-outline';
-          }
-
+          if (route.name === 'Shopping List') iconName = focused ? 'list' : 'list-outline';
+          else if (route.name === 'Pantry') iconName = focused ? 'archive' : 'archive-outline';
+          else if (route.name === 'Recipes') iconName = focused ? 'book' : 'book-outline';
           return <Ionicons name={iconName} size={size} color={color} />;
         },
         tabBarActiveTintColor: 'white',
         tabBarInactiveTintColor: '#C5C6D0',
-        tabBarStyle: {
-          backgroundColor: '#4F7942',
-        },
-        tabBarLabelStyle: {
-          fontSize: 12,
-        },
-        headerStyle: {
-          backgroundColor: '#4F7942',
-        },
+        tabBarStyle: { backgroundColor: themeColors.tabBar },
+        tabBarLabelStyle: { fontSize: 12 },
+        headerStyle: { backgroundColor: themeColors.tabBar },
         headerTintColor: 'white',
         headerTitleAlign: 'center',
         headerRight: () => <HamburgerMenu navigation={navigation} />,
@@ -160,26 +143,49 @@ const BottomTabNavigator = () => {
   );
 };
 
-const App = () => {
+const PaperIcon = (props) => <MaterialCommunityIcons {...props} />;
+
+const StackNavigatorWithTheme = () => {
+  const { colors: themeColors } = React.useContext(ThemeContext);
   return (
-    <Provider store={store}>
-      <NavigationContainer>
-        <Stack.Navigator
-          initialRouteName="StartUp"
-          screenOptions={{
-          headerStyle: {
-            backgroundColor: '#4F7942',
-          },
-          headerTintColor: 'white',
-          }}>
+    <Stack.Navigator
+      initialRouteName="StartUp"
+      screenOptions={{
+        headerStyle: { backgroundColor: themeColors.tabBar },
+        headerTintColor: 'white',
+      }}
+    >
           <Stack.Screen name="StartUp" component={BottomTabNavigator} options={{ headerShown: false }} />
           <Stack.Screen name="Presets" component={Presets} />
           <Stack.Screen name="Settings" component={Settings} />
           <Stack.Screen name="About" component={About} />
           <Stack.Screen name="RecipeContent" component={RecipeContent} />
-        </Stack.Navigator>
-      </NavigationContainer>
+    </Stack.Navigator>
+  );
+};
+
+const App = () => {
+  return (
+    <Provider store={store}>
+      <ThemeProvider>
+        <StatusBarWithTheme />
+        <PaperProvider settings={{ icon: PaperIcon }}>
+          <NavigationContainer>
+            <StackNavigatorWithTheme />
+          </NavigationContainer>
+        </PaperProvider>
+      </ThemeProvider>
     </Provider>
+  );
+};
+
+const StatusBarWithTheme = () => {
+  const { theme } = React.useContext(ThemeContext);
+  return (
+    <StatusBar
+      barStyle={theme === 'dark' ? 'light-content' : 'dark-content'}
+      backgroundColor={theme === 'dark' ? '#121212' : '#f8f8f8'}
+    />
   );
 };
 

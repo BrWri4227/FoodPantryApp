@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, FlatList } from 'react-native';
+import React, { useState, useContext } from 'react';
+import { View, StyleSheet, FlatList, Text } from 'react-native';
 import IngredientListing from './IngredientListing';
-
 import { useSelector, useDispatch } from 'react-redux';
 import { addGroceryItem, removeGroceryItem, addPantryItem, removePantryItem, setItemQuantity } from '../redux/pantryStore';
 import AddButton from './addButton';
-
 import { Snackbar } from 'react-native-paper';
+import { ThemeContext } from '../context/ThemeContext';
+import { generateStableId } from '../utils/id';
 
 
 const ListHandler = ({ listType }) => {
@@ -20,11 +20,11 @@ const ListHandler = ({ listType }) => {
 
   const handleUndoPress = (item) => () => {
     if (!item) return;
-    const newIndex = generateUniqueIndex([...ingredientArray.map((i) => i.id), ...otherList.map((i) => i.id)]);
+    const id = generateStableId();
     if (listType === 'pantry') {
-      dispatch(addPantryItem({ id: newIndex, name: item.name, quantity: item.quantity }));
+      dispatch(addPantryItem({ id, name: item.name, quantity: item.quantity }));
     } else {
-      dispatch(addGroceryItem({ id: newIndex, name: item.name, quantity: item.quantity }));
+      dispatch(addGroceryItem({ id, name: item.name, quantity: item.quantity }));
     }
     setSnackbarVisible({ visible: false, item: null });
   };
@@ -32,7 +32,7 @@ const ListHandler = ({ listType }) => {
   let ingredientArray;
   let otherList;
 
-  if (listType == "pantry") {
+  if (listType === 'pantry') {
     ingredientArray = useSelector(state => state.pantryItems);
     otherList = useSelector(state => state.groceryItems);
   } else {
@@ -42,12 +42,10 @@ const ListHandler = ({ listType }) => {
 
   const removeFromList = (item) => {
 
-    if(listType == "pantry"){
+    if (listType === 'pantry') {
       dispatch(removePantryItem(item));
-    }
-    else{
+    } else {
       dispatch(removeGroceryItem(item));
-      
     }
   };
 
@@ -62,48 +60,49 @@ const ListHandler = ({ listType }) => {
 
 
 
-  const generateUniqueIndex = (existingIndices) => {
-    let newIndex = existingIndices.length + 1;
-    while (existingIndices.includes(newIndex)) {
-      newIndex++; // increment until a unique index is found
+  const sendToPantry = (item) => {
+    const id = generateStableId();
+    if (listType === 'pantry') {
+      const qty = parseInt(item.quantity, 10) || 1;
+      if (containsItem(otherList, item.name)) {
+        const matchedItem = otherList.find((listItem) => listItem.name === item.name);
+        if (matchedItem) {
+          handleQuantityChange(item.name, parseInt(matchedItem.quantity, 10) + qty, 'Shopping List');
+        }
+      } else {
+        dispatch(addGroceryItem({ id, name: item.name, quantity: String(qty) }));
+      }
+      dispatch(removePantryItem(item));
+    } else {
+      if (containsItem(otherList, item.name)) {
+        const matchedItem = otherList.find((listItem) => listItem.name === item.name);
+        if (matchedItem) {
+          handleQuantityChange(item.name, parseInt(matchedItem.quantity, 10) + parseInt(item.quantity, 10), 'Pantry');
+        }
+      } else {
+        dispatch(addPantryItem({ id, name: item.name, quantity: item.quantity }));
+      }
+      dispatch(removeGroceryItem(item));
     }
-    return newIndex;
   };
 
-  const sendToPantry = (item) => { // poor naming, but this function sends an item to the opposite list (groceries <---> pantry)
+  const emptyMessage = listType === 'pantry'
+    ? 'Your pantry is empty. Tap + to add items.'
+    : 'Your shopping list is empty. Tap + to add items.';
 
+  const { colors: themeColors } = useContext(ThemeContext);
 
-      
-    let newIndex = generateUniqueIndex([...ingredientArray.map(item => item.id), ...otherList.map(item => item.id)]);
-
-      if (listType === 'pantry') {
-        const qty = parseInt(item.quantity, 10) || 1;
-        if (containsItem(otherList, item.name)) {
-          const matchedItem = otherList.find((listItem) => listItem.name === item.name);
-          if (matchedItem) {
-            handleQuantityChange(item.name, parseInt(matchedItem.quantity, 10) + qty, 'Shopping List');
-          }
-        } else {
-          dispatch(addGroceryItem({ id: newIndex, name: item.name, quantity: String(qty) }));
-        }
-        dispatch(removePantryItem(item));
-      } else {
-        if (containsItem(otherList, item.name)) {
-          const matchedItem = otherList.find((listItem) => listItem.name === item.name);
-          if (matchedItem) {
-            handleQuantityChange(item.name, parseInt(matchedItem.quantity, 10) + parseInt(item.quantity, 10), 'Pantry');
-          }
-        } else {
-          dispatch(addPantryItem({ id: newIndex, name: item.name, quantity: item.quantity }));
-        }
-        dispatch(removeGroceryItem(item));
-      }
-    };
+  const ListEmpty = () => (
+    <View style={[styles.emptyContainer, { backgroundColor: themeColors.background }]}>
+      <Text style={[styles.emptyText, { color: themeColors.textSecondary }]}>{emptyMessage}</Text>
+    </View>
+  );
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: themeColors.background }]}>
       <FlatList
         data={ingredientArray}
+        ListEmptyComponent={ListEmpty}
         renderItem={({ item }) => (
           <IngredientListing
             name={item.name}
@@ -138,7 +137,6 @@ const ListHandler = ({ listType }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f8f8',
     paddingHorizontal: 10,
     justifyContent: 'center',
     alignItems: 'center',
@@ -151,8 +149,17 @@ const styles = StyleSheet.create({
   snackContainer: {
     zIndex: 20,
     width: '100%',
-
-  }
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+  emptyText: {
+    fontSize: 16,
+    textAlign: 'center',
+  },
 });
 
 export default ListHandler;

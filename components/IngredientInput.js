@@ -1,7 +1,26 @@
-import React from 'react';
+import React, { useRef, useCallback } from 'react';
 import { View, Text, TextInput, FlatList, TouchableOpacity, StyleSheet, TouchableWithoutFeedback, UIManager, findNodeHandle } from 'react-native';
 
 import ingredientList from './top-1k-ingredients.json';
+
+const DEBOUNCE_MS = 120;
+const MAX_SUGGESTIONS = 8;
+
+/** Match query: prefer "starts with", then "word starts with", then "contains". */
+function sortByRelevance(list, queryLower) {
+  const q = queryLower;
+  return [...list].sort((a, b) => {
+    const aLower = a.toLowerCase();
+    const bLower = b.toLowerCase();
+    const aStarts = aLower.startsWith(q) ? 0 : 1;
+    const bStarts = bLower.startsWith(q) ? 0 : 1;
+    if (aStarts !== bStarts) return aStarts - bStarts;
+    const aWordStarts = aLower.split(/\s+/).some((w) => w.startsWith(q)) ? 0 : 1;
+    const bWordStarts = bLower.split(/\s+/).some((w) => w.startsWith(q)) ? 0 : 1;
+    if (aWordStarts !== bWordStarts) return aWordStarts - bWordStarts;
+    return aLower.indexOf(q) - bLower.indexOf(q);
+  });
+}
 
 const IngredientInput = ({
   input,
@@ -13,17 +32,27 @@ const IngredientInput = ({
   inputFieldHeight,
   setInputFieldHeight
 }) => {
+  const inputRef = useRef(null);
+  const suggestionsContainerRef = useRef(null);
+  const debounceRef = useRef(null);
 
-  const handleInputChange = (text) => {
+  const handleInputChange = useCallback((text) => {
     setInput(text);
-
-    // Filter suggestions based on input value
-    const filteredSuggestions = ingredientList.filter(
-      (ingredient) =>
-        ingredient.toLowerCase().indexOf(text.toLowerCase()) !== -1
-    );
-    setSuggestions(filteredSuggestions.slice(0, 3));
-  };
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      const lower = text.trim().toLowerCase();
+      if (!lower) {
+        setSuggestions([]);
+        return;
+      }
+      const filtered = ingredientList.filter(
+        (ingredient) => ingredient.toLowerCase().indexOf(lower) !== -1
+      );
+      const sorted = sortByRelevance(filtered, lower);
+      setSuggestions(sorted.slice(0, MAX_SUGGESTIONS));
+      debounceRef.current = null;
+    }, DEBOUNCE_MS);
+  }, [setInput, setSuggestions]);
 
   const handleSuggestionClick = (suggestion) => {
     setInput(suggestion);
@@ -31,15 +60,21 @@ const IngredientInput = ({
   };
 
   const measureInput = () => {
-    UIManager.measure(findNodeHandle(inputField), (x, y, width, height) => {
-      setInputFieldHeight(height);
-    });
+    const node = inputRef.current;
+    if (node && findNodeHandle(node)) {
+      UIManager.measure(findNodeHandle(node), (x, y, width, height) => {
+        setInputFieldHeight(height);
+      });
+    }
   };
 
   const measureSuggestionsContainer = () => {
-    UIManager.measure(findNodeHandle(suggestionsContainer), (x, y, width, height) => {
-      setSuggestionContainerHeight(height);
-    });
+    const node = suggestionsContainerRef.current;
+    if (node && findNodeHandle(node)) {
+      UIManager.measure(findNodeHandle(node), (x, y, width, height) => {
+        setSuggestionContainerHeight(height);
+      });
+    }
   };
 
   const handleTouchablePress = () => {
@@ -50,7 +85,7 @@ const IngredientInput = ({
     <TouchableWithoutFeedback onPress={handleTouchablePress}>
       <View style={styles.container}>
         <TextInput
-          ref={(input) => { inputField = input; }}
+          ref={inputRef}
           style={styles.input}
           onChangeText={handleInputChange}
           value={input}
@@ -59,7 +94,7 @@ const IngredientInput = ({
         />
         {suggestions.length > 0 && (
           <View
-            ref={(container) => { suggestionsContainer = container; }}
+            ref={suggestionsContainerRef}
             style={[
               styles.suggestionsContainer,
               { top: inputFieldHeight + 10 } // Add some space between input and suggestions
@@ -69,10 +104,13 @@ const IngredientInput = ({
             {/* Display suggestions as a dropdown */}
             <FlatList
               data={suggestions}
+              keyExtractor={(item) => item}
+              keyboardShouldPersistTaps="handled"
               renderItem={({ item }) => (
                 <TouchableOpacity
                   style={styles.suggestionItem}
-                  onPress={() => handleSuggestionClick(item)}>
+                  onPress={() => handleSuggestionClick(item)}
+                  activeOpacity={0.7}>
                   <Text>{item}</Text>
                 </TouchableOpacity>
               )}
@@ -107,13 +145,13 @@ const styles = StyleSheet.create({
     borderColor: 'gray',
     borderRadius: 5,
     backgroundColor: 'white',
-    maxHeight: 170,
+    maxHeight: 260,
     overflow: 'hidden',
   },
   suggestionItem: {
-    padding: 10,
+    padding: 12,
     borderBottomWidth: 1,
-    borderBottomColor: 'lightgray',
+    borderBottomColor: '#eee',
   },
 });
 
