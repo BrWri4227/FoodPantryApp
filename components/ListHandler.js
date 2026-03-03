@@ -32,7 +32,7 @@ const ListHandler = ({ listType }) => {
   let ingredientArray;
   let otherList;
 
-  if (listType == "pantry") {
+  if (listType === 'pantry') {
     ingredientArray = useSelector(state => state.pantryItems);
     otherList = useSelector(state => state.groceryItems);
   } else {
@@ -42,12 +42,10 @@ const ListHandler = ({ listType }) => {
 
   const removeFromList = (item) => {
 
-    if(listType == "pantry"){
+    if (listType === 'pantry') {
       dispatch(removePantryItem(item));
-    }
-    else{
+    } else {
       dispatch(removeGroceryItem(item));
-      
     }
   };
 

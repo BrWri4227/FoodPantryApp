@@ -27,37 +27,23 @@
     var pantryStock = "";
     
 
-    if(list=="pantry"){
+    if (list === 'pantry') {
       const groceryItems = useSelector(state => state.groceryItems);
       const fetchedItem = groceryItems.find(item => item.name.toLowerCase() === name.toLowerCase());
-
-      try{
-        pantryStock = fetchedItem.quantity+' in shopping list'
-      }
-      catch{
-        pantryStock = '0 in shopping list'
-      }
-    }
-    else{
+      pantryStock = (fetchedItem?.quantity ?? '0') + ' in shopping list';
+    } else {
       const pantryItems = useSelector(state => state.pantryItems);
       const fetchedItem = pantryItems.find(item => item.name.toLowerCase() === name.toLowerCase());
-
-      try{
-        pantryStock = fetchedItem.quantity+' in pantry'
-      }
-      catch{
-        pantryStock = '0 in pantry'
-      }
+      pantryStock = (fetchedItem?.quantity ?? '0') + ' in pantry';
     }
 
 
-    if(list=="pantry"){
-      leftText = " Remove from pantry";
-      rightText = "Add to grocery list";    
-    }
-    else{
-      leftText = " Remove from list";
-      rightText = "Add to pantry"; 
+    if (list === 'pantry') {
+      leftText = ' Remove from pantry';
+      rightText = 'Add to grocery list';
+    } else {
+      leftText = ' Remove from list';
+      rightText = 'Add to pantry';
     }
 
 
@@ -79,13 +65,7 @@
 
     const handleRightSwipe = () => {
       sendToPantry();
-      try{
-        swipeableRef.current.close();
-      }
-      catch(error){
-        console.log('cant close swipeable');
-      }
-
+      swipeableRef.current?.close();
     };
 
     return (

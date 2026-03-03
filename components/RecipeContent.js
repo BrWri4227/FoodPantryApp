@@ -30,7 +30,7 @@ const RecipeContent = () => {
   }
   // const addMissingIngredients = () => {
   const addMissingIngredients = () => {
-    recipeData.missedIngredients.forEach((ingredient) => {
+    (recipeData.missedIngredients ?? []).forEach((ingredient) => {
       dispatch(addGroceryItem({
         id: Math.random().toString(36).slice(2),
         name: ingredient.name,
@@ -57,7 +57,7 @@ const RecipeContent = () => {
           <Text style={styles.recipeTitle}>{recipeData.title}</Text>
         </View>
         <Text style={styles.sectionTitle}>Ingredients:</Text>
-        {recipeData.missedIngredients.map((ingredient, index) => (
+        {(recipeData.missedIngredients ?? []).map((ingredient, index) => (
           
           <View key={index} style={styles.ingredientContainer}>
     <Ionicons name="close-circle-outline" size={24} color="red" style={styles.icon} />
@@ -66,7 +66,7 @@ const RecipeContent = () => {
     </Text>
   </View>
         ))}
-        {recipeData.usedIngredients.map((ingredient, index) => (
+        {(recipeData.usedIngredients ?? []).map((ingredient, index) => (
           <View key={index} style={styles.ingredientContainer}>
           <Ionicons name="checkmark-circle-outline" size={24} color="green" style={styles.icon} />
           <Text style={styles.ingredient}>

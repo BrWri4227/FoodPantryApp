@@ -25,9 +25,6 @@ const EditModal = ({ visible = true, onClose, name, quantity }) => {
   };
 
   const handleConfirm = () => {
-    console.log('Confirm clicked. Details below');
-    console.log(name+' '+number);
-    console.log('Current page: ' + currentPage);
     handleQuantityChange(name, number, currentPage);
 
 

@@ -42,10 +42,7 @@ const AddButton = () => {
         <FAB
           style={styles.fab}
           icon="plus"
-          onPress={() => {
-            openModal();
-            console.log('Plus button pressed');
-          }}
+          onPress={openModal}
         />
       </Animated.View>
     </View>
