@@ -1,18 +1,32 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Switch, StyleSheet } from 'react-native';
+import React, { useState, useContext } from 'react';
+import { View, Text, TouchableOpacity, Switch, StyleSheet, Alert } from 'react-native';
+import { useDispatch } from 'react-redux';
+import { clearGroceryItems, clearPantryItems } from '../redux/pantryStore';
+import { ThemeContext } from '../context/ThemeContext';
 
 const Settings = () => {
-  const [isDarkMode, setIsDarkMode] = useState(false);
-  const [selectedUnit, setSelectedUnit] = useState('metric'); // 'metric' or 'imperial'
+  const dispatch = useDispatch();
+  const { theme, setTheme, colors: themeColors } = useContext(ThemeContext);
+  const isDarkMode = theme === 'dark';
+  const [selectedUnit, setSelectedUnit] = useState('metric');
   const [isMetricDefault, setIsMetricDefault] = useState(true);
 
-  const handleToggleDarkMode = () => {
-    // Toggle dark/light mode logic
-    setIsDarkMode((prevMode) => !prevMode);
+  const handleToggleDarkMode = (value) => {
+    setTheme(value ? 'dark' : 'light');
   };
 
   const handleClearPresets = () => {
-    // Clear presets logic
+    Alert.alert(
+      'Clear all lists',
+      'This will clear your Shopping List and Pantry. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Clear all', style: 'destructive', onPress: () => {
+          dispatch(clearGroceryItems());
+          dispatch(clearPantryItems());
+        } },
+      ]
+    );
   };
 
   const handleToggleMetricDefault = () => {
@@ -21,10 +35,9 @@ const Settings = () => {
   };
 
   return (
-    <View style={styles.container}>
-        
-      <View style={styles.settingItem}>
-        <Text>Dark Mode</Text>
+    <View style={[styles.container, { backgroundColor: themeColors.background }]}>
+      <View style={[styles.settingItem, { borderColor: themeColors.border }]}>
+        <Text style={{ color: themeColors.text }}>Dark Mode</Text>
         <Switch
           value={isDarkMode}
           onValueChange={handleToggleDarkMode}
@@ -32,18 +45,18 @@ const Settings = () => {
         />
       </View>
 
-      <View style={styles.settingItem}>
-        <Text style={styles.metricLabel}>Metric</Text>
+      <View style={[styles.settingItem, { borderColor: themeColors.border }]}>
+        <Text style={[styles.metricLabel, { color: themeColors.text }]}>Metric</Text>
         <Switch
           value={!isMetricDefault}
           onValueChange={handleToggleMetricDefault}
           style={styles.toggleSwitch}
         />
-        <Text style={styles.imperialLabel}>Imperial</Text>
+        <Text style={[styles.imperialLabel, { color: themeColors.text }]}>Imperial</Text>
       </View>
 
-      <TouchableOpacity onPress={handleClearPresets} style={styles.settingItem}>
-        <Text>Clear Presets</Text>
+      <TouchableOpacity onPress={handleClearPresets} style={[styles.settingItem, { borderColor: themeColors.border }]}>
+        <Text style={{ color: themeColors.text }}>Clear Presets</Text>
       </TouchableOpacity>
     </View>
   );

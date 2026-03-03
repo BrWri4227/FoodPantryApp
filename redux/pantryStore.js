@@ -74,6 +74,14 @@ const reducer = (state = initialState, action) => {
               ...state,
               loaded: action.payload,
             };
+          case 'CLEAR_GROCERY_ITEMS':
+            return { ...state, groceryItems: [] };
+          case 'CLEAR_PANTRY_ITEMS':
+            return { ...state, pantryItems: [] };
+          case 'SET_GROCERY_ITEMS':
+            return { ...state, groceryItems: action.payload };
+          case 'SET_PANTRY_ITEMS':
+            return { ...state, pantryItems: action.payload };
         default:
       return state;
   }
@@ -88,7 +96,11 @@ const removePantryItem = (item) => ({ type: 'REMOVE_PANTRY_ITEM', payload: item.
 const incrementItemQuantity = (item, addedQuantity, itemType) => ({ type: 'INCREMENT_ITEM_QUANTITY', payload: { item, addedQuantity, itemType }, });
 const setItemQuantity = (itemName, newQuantity, currentPage) => ({ type: 'SET_ITEM_QUANTITY', payload: { itemName, newQuantity, currentPage }, });
 const setLoad = (value) => ({ type: 'LOADED', payload: value });
+const clearGroceryItems = () => ({ type: 'CLEAR_GROCERY_ITEMS' });
+const clearPantryItems = () => ({ type: 'CLEAR_PANTRY_ITEMS' });
+const setGroceryItems = (items) => ({ type: 'SET_GROCERY_ITEMS', payload: items });
+const setPantryItems = (items) => ({ type: 'SET_PANTRY_ITEMS', payload: items });
 
 const store = createStore(reducer);
 
-export { store, setCurrentPage, setItemQuantity, addGroceryItem, removeGroceryItem, addPantryItem, removePantryItem, incrementItemQuantity, setLoad };
+export { store, setCurrentPage, setItemQuantity, addGroceryItem, removeGroceryItem, addPantryItem, removePantryItem, incrementItemQuantity, setLoad, clearGroceryItems, clearPantryItems, setGroceryItems, setPantryItems };

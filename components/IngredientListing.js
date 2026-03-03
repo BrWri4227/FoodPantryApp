@@ -1,17 +1,14 @@
-  import React, {useRef, useState} from 'react';
-  import { View, Text, StyleSheet, TouchableOpacity, Image  } from 'react-native';
+  import React, { useRef, useState, useContext } from 'react';
+  import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
   import { RectButton } from 'react-native-gesture-handler';
-
   import Swipeable from 'react-native-gesture-handler/Swipeable';
   import EditModal from './EditModal';
-
-  import { Ionicons } from '@expo/vector-icons';
   import { useSelector } from 'react-redux';
-
+  import { ThemeContext } from '../context/ThemeContext';
 
   const IngredientListing = ({ name, quantity, onDelete, sendToPantry, list }) => {
     const swipeableRef = useRef(null);
-
+    const { colors: themeColors } = useContext(ThemeContext);
     const [isModalVisible, setModalVisible] = useState(false);
     const openModal = () => {
       setModalVisible(true);
@@ -49,7 +46,7 @@
 
     const renderLeftActions = () => {
       return (
-        <RectButton style={styles.leftAction} onPress={onDelete}>
+        <RectButton style={[styles.leftAction, { backgroundColor: themeColors.error }]} onPress={onDelete}>
           <Text style={styles.actionText}>{leftText}</Text>
         </RectButton>
       );
@@ -57,7 +54,7 @@
 
     const renderRightActions = () => {
       return (
-        <RectButton style={styles.rightAction} onPress={sendToPantry}>
+        <RectButton style={[styles.rightAction, { backgroundColor: themeColors.primary }]} onPress={sendToPantry}>
           <Text style={styles.actionText}>{rightText}</Text>
         </RectButton>
       );
@@ -77,14 +74,29 @@
         onSwipeableRightOpen={handleRightSwipe}
 
       >
-        <TouchableOpacity activeOpacity={1} onPress={() => openModal()}>
-        {isModalVisible && <EditModal visible={true} onClose={closeModal} name={name} quantity={quantity} />}
-        <View style={styles.container}>
-          <Text style={styles.ingredient_name}>{name}</Text>
+        <TouchableOpacity activeOpacity={1} onPress={openModal}>
+          {isModalVisible && (
+            <EditModal
+              visible={true}
+              onClose={closeModal}
+              name={name}
+              quantity={quantity}
+            />
+          )}
+          <View
+            style={[
+              styles.container,
+              {
+                backgroundColor: themeColors.surface,
+                borderColor: themeColors.border,
+              },
+            ]}
+          >
+          <Text style={[styles.ingredient_name, { color: themeColors.text }]}>{name}</Text>
             <View style={styles.qtyContainer}>
               <View>
-                <Text style={styles.quantity_text}>Qty:{quantity}</Text>
-                <Text style={styles.stock_text}>{pantryStock}</Text>
+                <Text style={[styles.quantity_text, { color: themeColors.text }]}>Qty:{quantity}</Text>
+                <Text style={[styles.stock_text, { color: themeColors.textSecondary }]}>{pantryStock}</Text>
               </View>
               <Image
             source={require('../assets/swipe.png')}
@@ -101,11 +113,11 @@
     container: {
       flexDirection: 'row',
       width: '100%',
-      backgroundColor: '#FFFFFF',
       justifyContent: 'space-between',
       padding: 22,
       marginBottom: 5,
       borderRadius: 5,
+      borderWidth: 1,
     },
     ingredient_name: {
       fontSize: 26,
@@ -119,7 +131,6 @@
     },
     rightAction: {
       width: '100%',
-      backgroundColor: '#4F7942',
       justifyContent: 'center',
       alignItems: 'flex-end',
       paddingRight: 20,
@@ -128,7 +139,6 @@
     },
     leftAction: {
       width: '100%',
-      backgroundColor: '#990F02',
       justifyContent: 'center',
       textAlign: 'left',
       paddingRight: 20,
@@ -152,4 +162,4 @@
     },
   });
 
-  export default IngredientListing;
+  export default React.memo(IngredientListing);

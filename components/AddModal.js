@@ -4,6 +4,7 @@ import EditMenu from './EditMenu';
 
 import { useSelector, useDispatch } from 'react-redux';
 import { addGroceryItem, addPantryItem } from '../redux/pantryStore';
+import { generateStableId } from '../utils/id';
 
 
 const AddModal = ({ visible = true, onClose }) => {
@@ -18,15 +19,11 @@ const AddModal = ({ visible = true, onClose }) => {
   const groceryArray = useSelector((state) => state.groceryItems);
   const pantryArray = useSelector((state) => state.pantryItems);
 
-  const generateUniqueIndex = (existingIndices) => {
-    let newIndex = existingIndices.length + 1;
-    while (existingIndices.includes(newIndex)) {
-      newIndex++; // increment until a unique index is found
-    }
-    return newIndex;
+  const resetState = () => {
+    setInput('');
+    setNumber(0);
+    setSuggestions([]);
   };
-
-  
 
   const handleDecrease = () => {
     setNumber((prevNumber) => Math.max(prevNumber - 1, 0));
@@ -43,8 +40,7 @@ const AddModal = ({ visible = true, onClose }) => {
     console.log('Currently on: '+currentPage);*/
 
 
-    let newIndex = generateUniqueIndex([...groceryArray.map(item => item.id), ...pantryArray.map(item => item.id)]);
-
+    const newId = generateStableId();
     const whitespaceRegex = /^\s*$/;
     const showMessage = (msg) => {
       if (Platform.OS === 'android' && typeof ToastAndroid !== 'undefined') {
@@ -63,19 +59,16 @@ const AddModal = ({ visible = true, onClose }) => {
       return;
     }
     else if (currentPage === 'Shopping List') {
-      dispatch(addGroceryItem({ id: newIndex, name: input.trim(), quantity: String(number) }));
+      dispatch(addGroceryItem({ id: newId, name: input.trim(), quantity: String(number) }));
     } else if (currentPage === 'Pantry') {
-      dispatch(addPantryItem({ id: newIndex, name: input.trim(), quantity: String(number) }));
-
-
+      dispatch(addPantryItem({ id: newId, name: input.trim(), quantity: String(number) }));
     }
-
-
+    resetState();
     onClose();
   };
-  
 
   const handleCancel = () => {
+    resetState();
     onClose();
   };
 

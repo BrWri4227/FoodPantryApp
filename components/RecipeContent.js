@@ -1,50 +1,73 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, ActivityIndicator, Linking } from 'react-native';
-import { useRoute } from '@react-navigation/native';
+import { useRoute, useNavigation } from '@react-navigation/native';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
 import { useDispatch } from 'react-redux';
 import { addGroceryItem } from '../redux/pantryStore';
 import { spoonacularApiKey } from '../appConfig';
+import { ThemeContext } from '../context/ThemeContext';
+import { generateStableId } from '../utils/id';
 
 const RecipeContent = () => {
   const route = useRoute();
+  const navigation = useNavigation();
   const dispatch = useDispatch();
-  const { recipeData } = route.params;
-  const apiURL = `https://api.spoonacular.com/recipes/${recipeData.id}/information?apiKey=${spoonacularApiKey}&includeNutrition=false`;
-  const [recipeInfo, setRecipeInfo] = useState({});
+  const { colors: themeColors } = React.useContext(ThemeContext);
+  const recipeData = route.params?.recipeData;
   const [sourceURL, setSourceURL] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-  const getRecipeInfo = async () => {
-    try {
-      const response = await fetch(apiURL);
-      const data = await response.json();
-      // console.log(data);
-      // console.log(data.sourceUrl);
-      setRecipeInfo(data);
-      setSourceURL(data.sourceUrl);
-      setIsLoading(false);
-    } catch (error) {
-      console.error(error);
-    }
-  }
-  // const addMissingIngredients = () => {
+  const [fetchError, setFetchError] = useState(null);
+
+  useEffect(() => {
+    if (!recipeData?.id) return;
+    const apiURL = `https://api.spoonacular.com/recipes/${recipeData.id}/information?apiKey=${spoonacularApiKey}&includeNutrition=false`;
+    let cancelled = false;
+    const fetchInfo = async () => {
+      try {
+        const response = await fetch(apiURL);
+        if (!response.ok) throw new Error('Failed to load recipe');
+        const data = await response.json();
+        if (!cancelled) {
+          setSourceURL(data.sourceUrl || '');
+          setIsLoading(false);
+        }
+      } catch (err) {
+        console.error(err);
+        if (!cancelled) {
+          setFetchError(err.message || 'Could not load instructions');
+          setIsLoading(false);
+        }
+      }
+    };
+    fetchInfo();
+    return () => { cancelled = true; };
+  }, [recipeData?.id]);
+
   const addMissingIngredients = () => {
-    (recipeData.missedIngredients ?? []).forEach((ingredient) => {
+    if (!recipeData?.missedIngredients?.length) return;
+    recipeData.missedIngredients.forEach((ingredient) => {
       dispatch(addGroceryItem({
-        id: Math.random().toString(36).slice(2),
+        id: generateStableId(),
         name: ingredient.name,
         quantity: String(ingredient.amount ?? 1),
       }));
     });
   };
 
-  useEffect(() => {
-    getRecipeInfo();
-  }, []); 
+  if (!recipeData) {
+    return (
+      <View style={styles.centered}>
+        <Text style={styles.errorText}>Recipe not found.</Text>
+        <TouchableOpacity style={[styles.button, { backgroundColor: themeColors.primary }]} onPress={() => navigation.goBack()}>
+          <Text style={styles.buttonText}>Go back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
     <ScrollView style={styles.container}>
-
       <View style={styles.imageContainer}>
         <Image style={styles.mainImage} source={{ uri: recipeData.image }} />
         <View style={styles.overlay}></View>
@@ -84,13 +107,15 @@ const RecipeContent = () => {
           <Text style={styles.buttonText}>Get Instructions</Text>
         </TouchableOpacity > */}
         {isLoading ? (
-          <ActivityIndicator size="large" color="#0000ff" />
+          <ActivityIndicator size="large" color={themeColors.primary} />
+        ) : fetchError ? (
+          <Text style={[styles.errorText, { color: themeColors.error }]}>{fetchError}</Text>
         ) : sourceURL ? (
           <TouchableOpacity style={styles.button} onPress={() => Linking.openURL(sourceURL)}>
             <Text style={styles.buttonText}>View Instructions</Text>
           </TouchableOpacity>
         ) : (
-          <Text>No instructions available</Text>
+          <Text style={[styles.hint, { color: themeColors.textSecondary }]}>No instructions available</Text>
         )}
 
       </View>
@@ -161,6 +186,20 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#ffffff',
     fontSize: 16,
+  },
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  errorText: {
+    fontSize: 16,
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  hint: {
+    fontSize: 14,
   },
 });
 
