@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { View, Modal, Text, TextInput, TouchableOpacity, StyleSheet, Platform, Alert, ToastAndroid } from 'react-native';
+import React, { useState, useContext } from 'react';
+import { View, Modal, Text, TextInput, TouchableOpacity, StyleSheet, Platform, Alert, ToastAndroid, KeyboardAvoidingView } from 'react-native';
 import EditMenu from './EditMenu';
+import { ThemeContext } from '../context/ThemeContext';
 
 import { useSelector, useDispatch } from 'react-redux';
 import { addGroceryItem, addPantryItem } from '../redux/pantryStore';
@@ -8,6 +9,7 @@ import { generateStableId } from '../utils/id';
 
 
 const AddModal = ({ visible = true, onClose }) => {
+  const { colors: themeColors } = useContext(ThemeContext);
   const [input, setInput] = useState('');
   const [suggestions, setSuggestions] = useState([]);
   const [suggestionContainerHeight, setSuggestionContainerHeight] = useState(0);
@@ -79,8 +81,13 @@ const AddModal = ({ visible = true, onClose }) => {
       animationType="slide"
       onRequestClose={onClose}
     >
+      <KeyboardAvoidingView
+        behavior="padding"
+        style={styles.keyboardAvoid}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
+      >
       <View style={styles.modalContainer}>
-        <View style={styles.componentContainer}>
+        <View style={[styles.componentContainer, { backgroundColor: themeColors.surface }]}>
           <EditMenu
             input={input}
             setInput={setInput}
@@ -92,49 +99,54 @@ const AddModal = ({ visible = true, onClose }) => {
             setInputFieldHeight={setInputFieldHeight}
           />
         </View>
-        <View style={styles.modalContent}>
-          <TouchableOpacity onPress={handleDecrease}>
-            <View style={styles.circleButton}>
-              <Text style={styles.minus}>-</Text>
+        <View style={[styles.modalContent, { backgroundColor: themeColors.surface }]}>
+          <TouchableOpacity onPress={handleDecrease} style={styles.touchTarget}>
+            <View style={[styles.circleButton, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]}>
+              <Text style={[styles.minus, { color: themeColors.error }]}>-</Text>
             </View>
           </TouchableOpacity>
 
           <TextInput
-            style={styles.input}
+            style={[styles.input, { color: themeColors.text }]}
             value={number.toString()}
             onChangeText={(text) => setNumber(parseInt(text, 10) || 0)}
             keyboardType="numeric"
+            placeholderTextColor={themeColors.textSecondary}
           />
 
-          <TouchableOpacity onPress={handleIncrease}>
-            <View style={styles.circleButton}>
-              <Text style={styles.plus}>+</Text>
+          <TouchableOpacity onPress={handleIncrease} style={styles.touchTarget}>
+            <View style={[styles.circleButton, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]}>
+              <Text style={[styles.plus, { color: themeColors.primary }]}>+</Text>
             </View>
           </TouchableOpacity>
         </View>
 
         <View style={styles.bottomButtons}>
-          <View style={styles.cancelButtonContainer}> 
+          <View style={[styles.cancelButtonContainer, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]}> 
             <TouchableOpacity onPress={handleCancel}>
-              <Text style={styles.cancelButton}>Cancel</Text>
+              <Text style={[styles.cancelButton, { color: themeColors.primary }]}>Cancel</Text>
             </TouchableOpacity>
           </View>
 
           <Text style={styles.buttonSeparator}></Text>
           
-          <View style={styles.confirmButtonContainer}> 
+          <View style={[styles.confirmButtonContainer, { backgroundColor: themeColors.primary }]}> 
             <TouchableOpacity onPress={handleConfirm}>
               <Text style={styles.confirmButton}>Confirm</Text>
             </TouchableOpacity>
           </View>
         </View>
       </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };
 
 
 const styles = StyleSheet.create({
+  keyboardAvoid: {
+    flex: 1,
+  },
   modalContainer: {
     flex: 1,
     justifyContent: 'flex-end',
@@ -146,7 +158,6 @@ const styles = StyleSheet.create({
   modalContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'white',
     padding: 20,
     borderRadius: 10,
   },
@@ -156,15 +167,19 @@ const styles = StyleSheet.create({
     fontSize: 18,
     marginHorizontal: 10,
   },
+  touchTarget: {
+    minWidth: 44,
+    minHeight: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   minus: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: 'red',
   },
   plus: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: 'green',
   },
   bottomButtons: {
     flexDirection: 'row',
@@ -185,7 +200,6 @@ const styles = StyleSheet.create({
   cancelButton: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#007bff',
   },
   componentContainer: {
     justifyContent: 'flex-end',
@@ -194,21 +208,20 @@ const styles = StyleSheet.create({
   },
   confirmButtonContainer: {
     borderRadius: 10,
-    backgroundColor: 'green',
     paddingHorizontal: 20,
     paddingVertical: 10,
   },
   cancelButtonContainer: {
     borderRadius: 10,
-    backgroundColor: 'white',
+    borderWidth: 1,
     paddingHorizontal: 20,
     paddingVertical: 10,
   },
   circleButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'white',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },

@@ -1,11 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import IngredientInput from './IngredientInput';
+import { ThemeContext } from '../context/ThemeContext';
 
 const EditMenu = ({ input, setInput, suggestions, setSuggestions, suggestionContainerHeight, setSuggestionContainerHeight, inputFieldHeight, setInputFieldHeight }) => {
+  const { colors: themeColors } = React.useContext(ThemeContext);
   return (
-    <View style={styles.editMenuContainer}>
-      <Text style={styles.ingredientName}>Ingredient Name:</Text>
+    <View style={[styles.editMenuContainer, { backgroundColor: themeColors.surface }]}>
+      <Text style={[styles.ingredientName, { color: themeColors.text }]}>Ingredient Name:</Text>
       <IngredientInput
         input={input}
         setInput={setInput}
@@ -25,7 +27,6 @@ const styles = StyleSheet.create({
   editMenuContainer: {
     flexDirection: 'row',
     width: '100%',
-    backgroundColor: '#FFFFFF',
     justifyContent: 'flex-start',
     paddingVertical: 20,
     paddingHorizontal: 30,

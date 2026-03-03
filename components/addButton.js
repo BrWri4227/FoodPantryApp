@@ -1,9 +1,11 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useContext } from 'react';
 import { Animated, View, StyleSheet, PanResponder } from 'react-native';
 import { FAB } from 'react-native-paper';
 import AddModal from './AddModal';
+import { ThemeContext } from '../context/ThemeContext';
 
 const AddButton = () => {
+  const { colors: themeColors } = useContext(ThemeContext);
   const [isModalVisible, setModalVisible] = useState(false);
   const openModal = () => {
     setModalVisible(true);
@@ -40,8 +42,9 @@ const AddButton = () => {
       {isModalVisible && <AddModal onClose={closeModal} />}
       <Animated.View>
         <FAB
-          style={styles.fab}
+          style={[styles.fab, { backgroundColor: themeColors.primary }]}
           icon="plus"
+          color="white"
           onPress={openModal}
         />
       </Animated.View>

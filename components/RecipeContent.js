@@ -8,6 +8,7 @@ import { addGroceryItem } from '../redux/pantryStore';
 import { spoonacularApiKey } from '../appConfig';
 import { ThemeContext } from '../context/ThemeContext';
 import { generateStableId } from '../utils/id';
+import { getCachedRecipeInfo, setCachedRecipeInfo } from '../services/spoonacularCache';
 
 const RecipeContent = () => {
   const route = useRoute();
@@ -21,6 +22,12 @@ const RecipeContent = () => {
 
   useEffect(() => {
     if (!recipeData?.id) return;
+    const cached = getCachedRecipeInfo(recipeData.id);
+    if (cached) {
+      setSourceURL(cached.sourceUrl || '');
+      setIsLoading(false);
+      return;
+    }
     const apiURL = `https://api.spoonacular.com/recipes/${recipeData.id}/information?apiKey=${spoonacularApiKey}&includeNutrition=false`;
     let cancelled = false;
     const fetchInfo = async () => {
@@ -29,6 +36,7 @@ const RecipeContent = () => {
         if (!response.ok) throw new Error('Failed to load recipe');
         const data = await response.json();
         if (!cancelled) {
+          setCachedRecipeInfo(recipeData.id, data);
           setSourceURL(data.sourceUrl || '');
           setIsLoading(false);
         }
@@ -67,7 +75,11 @@ const RecipeContent = () => {
   }
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView
+      style={[styles.container, { backgroundColor: themeColors.background }]}
+      contentContainerStyle={styles.scrollContent}
+      showsVerticalScrollIndicator={true}
+    >
       <View style={styles.imageContainer}>
         <Image style={styles.mainImage} source={{ uri: recipeData.image }} />
         <View style={styles.overlay}></View>
@@ -77,32 +89,27 @@ const RecipeContent = () => {
         <View style={styles.titleContainer}>
 
 
-          <Text style={styles.recipeTitle}>{recipeData.title}</Text>
+          <Text style={[styles.recipeTitle, { color: themeColors.text }]}>{recipeData.title}</Text>
         </View>
-        <Text style={styles.sectionTitle}>Ingredients:</Text>
+        <Text style={[styles.sectionTitle, { color: themeColors.text }]}>Ingredients:</Text>
         {(recipeData.missedIngredients ?? []).map((ingredient, index) => (
-          
           <View key={index} style={styles.ingredientContainer}>
-    <Ionicons name="close-circle-outline" size={24} color="red" style={styles.icon} />
-    <Text style={styles.ingredient}>
-      {ingredient.original}
-    </Text>
-  </View>
+            <Ionicons name="close-circle-outline" size={24} color={themeColors.error} style={styles.icon} />
+            <Text style={[styles.ingredient, { color: themeColors.text }]}>{ingredient.original}</Text>
+          </View>
         ))}
         {(recipeData.usedIngredients ?? []).map((ingredient, index) => (
           <View key={index} style={styles.ingredientContainer}>
-          <Ionicons name="checkmark-circle-outline" size={24} color="green" style={styles.icon} />
-          <Text style={styles.ingredient}>
-            {ingredient.original}
-          </Text>
-        </View>
+            <Ionicons name="checkmark-circle-outline" size={24} color={themeColors.primary} style={styles.icon} />
+            <Text style={[styles.ingredient, { color: themeColors.text }]}>{ingredient.original}</Text>
+          </View>
         ))}
 
-        <TouchableOpacity onPress={() => addMissingIngredients()} style={styles.button}>
+        <TouchableOpacity onPress={() => addMissingIngredients()} style={[styles.button, { backgroundColor: themeColors.primary }]}>
           <Text style={styles.buttonText}>Add Missing Ingredients to Shopping List</Text>
-        </TouchableOpacity >
+        </TouchableOpacity>
 
-        <Text style={styles.sectionTitle}>Instructions:</Text>
+        <Text style={[styles.sectionTitle, { color: themeColors.text }]}>Instructions:</Text>
         {/* <TouchableOpacity onPress={getRecipeInfo} style={styles.button}>
           <Text style={styles.buttonText}>Get Instructions</Text>
         </TouchableOpacity > */}
@@ -111,7 +118,7 @@ const RecipeContent = () => {
         ) : fetchError ? (
           <Text style={[styles.errorText, { color: themeColors.error }]}>{fetchError}</Text>
         ) : sourceURL ? (
-          <TouchableOpacity style={styles.button} onPress={() => Linking.openURL(sourceURL)}>
+          <TouchableOpacity style={[styles.button, { backgroundColor: themeColors.primary }]} onPress={() => Linking.openURL(sourceURL)}>
             <Text style={styles.buttonText}>View Instructions</Text>
           </TouchableOpacity>
         ) : (
@@ -126,8 +133,10 @@ const RecipeContent = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  scrollContent: {
     padding: 20,
-    backgroundColor: 'white',
+    paddingBottom: 40,
   },
   mainImage: {
     width: '100%',

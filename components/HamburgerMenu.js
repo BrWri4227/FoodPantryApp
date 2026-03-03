@@ -1,17 +1,23 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Modal } from 'react-native';
+import React, { useState, useContext } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Modal, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { SaveContext } from '../context/SaveContext';
+import { ThemeContext } from '../context/ThemeContext';
 
 const HamburgerMenu = ({ navigation }) => {
+  const insets = useSafeAreaInsets();
   const [modalVisible, setModalVisible] = useState(false);
+  const { saveBothToFirestore, isSaving } = useContext(SaveContext);
+  const { colors: themeColors } = useContext(ThemeContext);
 
   const handleClose = () => {
     setModalVisible(false);
   };
 
-  const handleOptionPress = (routeName) => {
+  const handleSaveList = () => {
+    saveBothToFirestore();
     setModalVisible(false);
-    /* Put Save List */
   };
 
   const handleNavigationPress = (routeName) => {
@@ -30,18 +36,18 @@ const HamburgerMenu = ({ navigation }) => {
             <TouchableOpacity style={styles.modalContent} onPress={handleClose}>
               {/* Empty View to capture touch outside the buttonContainer */}
             </TouchableOpacity>
-            <View style={styles.buttonContainer}>
-              <TouchableOpacity onPress={() => handleOptionPress('SaveList')}>
-                <Text style={styles.menuItem}>Save List</Text>
+            <View style={[styles.buttonContainer, { backgroundColor: themeColors.surface }]}>
+              <TouchableOpacity onPress={handleSaveList} disabled={isSaving}>
+                <Text style={[styles.menuItem, { color: themeColors.text }]}>{isSaving ? 'Saving...' : 'Save List'}</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={() => handleNavigationPress("Presets")}>
-                <Text style={styles.menuItem}>Load List</Text>
+                <Text style={[styles.menuItem, { color: themeColors.text }]}>Load List</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={() => handleNavigationPress('Settings')}>
-                <Text style={styles.menuItem}>Settings</Text>
+                <Text style={[styles.menuItem, { color: themeColors.text }]}>Settings</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={() => handleNavigationPress('About')}>
-                <Text style={styles.menuItem}>About Us</Text>
+                <Text style={[styles.menuItem, { color: themeColors.text }]}>About Us</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -65,14 +71,18 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   buttonContainer: {
-    backgroundColor: 'white',
     paddingHorizontal: 15,
-    paddingTop: 10,
-    marginTop: 40,
+    paddingLeft: 20,
+    paddingBottom: 16,
     position: 'absolute',
     top: 0,
     right: 0,
     elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    ...(Platform.OS === 'android' ? {} : { borderRadius: 8 }),
   },
   menuItem: {
     fontSize: 16,

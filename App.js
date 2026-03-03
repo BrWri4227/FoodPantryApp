@@ -1,10 +1,12 @@
-import React, { useEffect, useCallback } from 'react';
-import { StatusBar } from 'react-native';
+import React, { useEffect, useCallback, useRef, useState } from 'react';
+import { StatusBar, AppState, ActivityIndicator, View, Text } from 'react-native';
+import { Snackbar } from 'react-native-paper';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { PaperProvider } from 'react-native-paper';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import ShoppingList from './screens/ShoppingListScreen';
 import Pantry from './screens/PantryScreen';
@@ -14,81 +16,130 @@ import Settings from './screens/SettingsScreen';
 import About from './screens/AboutScreen';
 import HamburgerMenu from './components/HamburgerMenu';
 import { Provider, useDispatch, useSelector } from 'react-redux';
-import { store, setCurrentPage, addPantryItem, addGroceryItem, setLoad, setGroceryItems, setPantryItems } from './redux/pantryStore';
+import { store, setCurrentPage, setLoad, setGroceryItems, setPantryItems } from './redux/pantryStore';
 import RecipeContent from './components/RecipeContent';
 import { getFirestore, collection, getDocs, writeBatch, doc } from 'firebase/firestore';
 import app from './firebaseConfig';
 import { ThemeProvider, ThemeContext } from './context/ThemeContext';
+import { SaveContext } from './context/SaveContext';
+import { loadFromAsyncStorage, saveToAsyncStorage } from './services/persistence';
 
 const db = getFirestore(app);
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
+const ASYNC_SAVE_DEBOUNCE_MS = 500;
+
 const BottomTabNavigator = () => {
   const dispatch = useDispatch();
-  const loaded = useSelector(state => state.loaded); 
-  const groceryItems = useSelector(state => state.groceryItems);
-  const pantryItems = useSelector(state => state.pantryItems);
-
-  const loadPantryItem = (item) => {
-    dispatch(addPantryItem({ id: item.id, name: item.name, quantity: item.quantity }));
-  }
-
-  const loadGroceryItem = (item) => {
-    dispatch(addGroceryItem({ id: item.id, name: item.name, quantity: item.quantity }));
-  }
+  const loaded = useSelector((state) => state.loaded);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccessVisible, setSaveSuccessVisible] = useState(false);
+  const saveTimeoutRef = useRef(null);
 
   const groceryCollectionRef = collection(db, 'shopping');
   const pantryCollectionRef = collection(db, 'pantry');
 
-  const uploadGroceryItemsToFirestore = async () => {
+  const uploadGroceryItemsToFirestore = useCallback(async () => {
+    const items = store.getState().groceryItems;
     try {
       const batch = writeBatch(db);
       const snapshot = await getDocs(groceryCollectionRef);
       snapshot.docs.forEach((d) => batch.delete(d.ref));
-      groceryItems.forEach((item) => {
+      items.forEach((item) => {
         batch.set(doc(groceryCollectionRef), item);
       });
       await batch.commit();
     } catch (err) {
       console.error('Failed to upload grocery items:', err);
     }
-  };
+  }, []);
 
-  const uploadPantryItemsToFirestore = async () => {
+  const uploadPantryItemsToFirestore = useCallback(async () => {
+    const items = store.getState().pantryItems;
     try {
       const batch = writeBatch(db);
       const snapshot = await getDocs(pantryCollectionRef);
       snapshot.docs.forEach((d) => batch.delete(d.ref));
-      pantryItems.forEach((item) => {
+      items.forEach((item) => {
         batch.set(doc(pantryCollectionRef), item);
       });
       await batch.commit();
     } catch (err) {
       console.error('Failed to upload pantry items:', err);
     }
-  };
+  }, []);
+
+  const saveBothToFirestore = useCallback(async () => {
+    setIsSaving(true);
+    try {
+      await Promise.all([uploadGroceryItemsToFirestore(), uploadPantryItemsToFirestore()]);
+      setSaveSuccessVisible(true);
+    } finally {
+      setIsSaving(false);
+    }
+  }, [uploadGroceryItemsToFirestore, uploadPantryItemsToFirestore]);
 
   useEffect(() => {
-    const fetchRecentEntries = async () => {
-      if (loaded !== 'false') return;
+    if (loaded !== 'false') return;
+    let cancelled = false;
+
+    const loadData = async () => {
       try {
+        const { groceryItems: localGrocery, pantryItems: localPantry } = await loadFromAsyncStorage();
+        if (cancelled) return;
+
+        dispatch(setGroceryItems(localGrocery));
+        dispatch(setPantryItems(localPantry));
+        if (!cancelled) dispatch(setLoad('true'));
+
         const [pantrySnap, grocerySnap] = await Promise.all([
           getDocs(collection(db, 'pantry')),
           getDocs(collection(db, 'shopping')),
         ]);
+        if (cancelled) return;
+
         const pantryData = pantrySnap.docs.map((d) => ({ ...d.data(), id: d.data().id ?? d.id }));
         const groceryData = grocerySnap.docs.map((d) => ({ ...d.data(), id: d.data().id ?? d.id }));
-        pantryData.forEach((obj) => loadPantryItem(obj));
-        groceryData.forEach((obj) => loadGroceryItem(obj));
-        dispatch(setLoad('true'));
+
+        if (pantryData.length > 0 || groceryData.length > 0) {
+          dispatch(setGroceryItems(groceryData));
+          dispatch(setPantryItems(pantryData));
+        }
       } catch (err) {
-        console.error('Failed to load data from Firestore:', err);
+        console.error('Failed to load:', err);
+        if (!cancelled) dispatch(setLoad('true'));
       }
     };
-    fetchRecentEntries();
-  }, [dispatch, loaded]); 
+
+    loadData();
+    return () => { cancelled = true; };
+  }, [dispatch, loaded]);
+
+  useEffect(() => {
+    const unsubscribe = store.subscribe(() => {
+      const { groceryItems: g, pantryItems: p } = store.getState();
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = setTimeout(() => {
+        saveToAsyncStorage(g, p);
+        saveTimeoutRef.current = null;
+      }, ASYNC_SAVE_DEBOUNCE_MS);
+    });
+    return () => {
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+      unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'background' || nextState === 'inactive') {
+        saveBothToFirestore();
+      }
+    });
+    return () => sub.remove();
+  }, [saveBothToFirestore]); 
 
   const handleScreenChange = (routeName) => {
     dispatch(setCurrentPage(routeName));
@@ -96,7 +147,17 @@ const BottomTabNavigator = () => {
 
   const { colors: themeColors } = React.useContext(ThemeContext);
 
+  const showLoading = loaded === 'false';
+
   return (
+    <SaveContext.Provider value={{ saveBothToFirestore, isSaving }}>
+    <View style={{ flex: 1 }}>
+    {showLoading && (
+      <View style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', backgroundColor: themeColors.background, zIndex: 100 }}>
+        <ActivityIndicator size="large" color={themeColors.primary} />
+        <Text style={{ marginTop: 12, color: themeColors.textSecondary }}>Loading...</Text>
+      </View>
+    )}
     <Tab.Navigator
       screenOptions={({ route, navigation }) => ({
         tabBarIcon: ({ focused, color, size }) => {
@@ -140,6 +201,16 @@ const BottomTabNavigator = () => {
         })}
       />
     </Tab.Navigator>
+    <Snackbar
+      visible={saveSuccessVisible}
+      onDismiss={() => setSaveSuccessVisible(false)}
+      duration={2500}
+      style={{ backgroundColor: themeColors.primary }}
+    >
+      Lists saved
+    </Snackbar>
+    </View>
+    </SaveContext.Provider>
   );
 };
 
@@ -167,14 +238,16 @@ const StackNavigatorWithTheme = () => {
 const App = () => {
   return (
     <Provider store={store}>
-      <ThemeProvider>
-        <StatusBarWithTheme />
-        <PaperProvider settings={{ icon: PaperIcon }}>
-          <NavigationContainer>
-            <StackNavigatorWithTheme />
-          </NavigationContainer>
-        </PaperProvider>
-      </ThemeProvider>
+      <SafeAreaProvider>
+        <ThemeProvider>
+          <StatusBarWithTheme />
+          <PaperProvider settings={{ icon: PaperIcon }}>
+            <NavigationContainer>
+              <StackNavigatorWithTheme />
+            </NavigationContainer>
+          </PaperProvider>
+        </ThemeProvider>
+      </SafeAreaProvider>
     </Provider>
   );
 };

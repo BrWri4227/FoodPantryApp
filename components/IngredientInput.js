@@ -1,5 +1,6 @@
-import React, { useRef, useCallback } from 'react';
+import React, { useRef, useCallback, useContext } from 'react';
 import { View, Text, TextInput, FlatList, TouchableOpacity, StyleSheet, TouchableWithoutFeedback, UIManager, findNodeHandle } from 'react-native';
+import { ThemeContext } from '../context/ThemeContext';
 
 import ingredientList from './top-1k-ingredients.json';
 
@@ -32,6 +33,7 @@ const IngredientInput = ({
   inputFieldHeight,
   setInputFieldHeight
 }) => {
+  const { colors: themeColors } = useContext(ThemeContext);
   const inputRef = useRef(null);
   const suggestionsContainerRef = useRef(null);
   const debounceRef = useRef(null);
@@ -86,10 +88,11 @@ const IngredientInput = ({
       <View style={styles.container}>
         <TextInput
           ref={inputRef}
-          style={styles.input}
+          style={[styles.input, { borderColor: themeColors.border, color: themeColors.text }]}
           onChangeText={handleInputChange}
           value={input}
           placeholder="Type here..."
+          placeholderTextColor={themeColors.textSecondary}
           onLayout={measureInput}
         />
         {suggestions.length > 0 && (
@@ -97,21 +100,20 @@ const IngredientInput = ({
             ref={suggestionsContainerRef}
             style={[
               styles.suggestionsContainer,
-              { top: inputFieldHeight + 10 } // Add some space between input and suggestions
+              { top: inputFieldHeight + 10, borderColor: themeColors.border, backgroundColor: themeColors.surface }
             ]}
             onLayout={measureSuggestionsContainer}
           >
-            {/* Display suggestions as a dropdown */}
             <FlatList
               data={suggestions}
-              keyExtractor={(item) => item}
+              keyExtractor={(item, index) => `${item}-${index}`}
               keyboardShouldPersistTaps="handled"
               renderItem={({ item }) => (
                 <TouchableOpacity
-                  style={styles.suggestionItem}
+                  style={[styles.suggestionItem, { borderBottomColor: themeColors.border }]}
                   onPress={() => handleSuggestionClick(item)}
                   activeOpacity={0.7}>
-                  <Text>{item}</Text>
+                  <Text style={{ color: themeColors.text }}>{item}</Text>
                 </TouchableOpacity>
               )}
             />
@@ -131,7 +133,6 @@ const styles = StyleSheet.create({
   },
   input: {
     height: 40,
-    borderColor: 'gray',
     borderWidth: 1,
     marginBottom: 10,
     paddingHorizontal: 10,
@@ -142,16 +143,13 @@ const styles = StyleSheet.create({
     right: 0,
     marginTop: 10,
     borderWidth: 1,
-    borderColor: 'gray',
     borderRadius: 5,
-    backgroundColor: 'white',
     maxHeight: 260,
     overflow: 'hidden',
   },
   suggestionItem: {
     padding: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
   },
 });
 

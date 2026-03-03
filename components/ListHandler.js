@@ -1,5 +1,6 @@
 import React, { useState, useContext } from 'react';
 import { View, StyleSheet, FlatList, Text } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import IngredientListing from './IngredientListing';
 import { useSelector, useDispatch } from 'react-redux';
 import { addGroceryItem, removeGroceryItem, addPantryItem, removePantryItem, setItemQuantity } from '../redux/pantryStore';
@@ -90,11 +91,15 @@ const ListHandler = ({ listType }) => {
     ? 'Your pantry is empty. Tap + to add items.'
     : 'Your shopping list is empty. Tap + to add items.';
 
+  const emptyHint = 'Swipe items left or right for actions';
+
   const { colors: themeColors } = useContext(ThemeContext);
 
   const ListEmpty = () => (
     <View style={[styles.emptyContainer, { backgroundColor: themeColors.background }]}>
+      <Ionicons name={listType === 'pantry' ? 'archive-outline' : 'cart-outline'} size={64} color={themeColors.textSecondary} style={styles.emptyIcon} />
       <Text style={[styles.emptyText, { color: themeColors.textSecondary }]}>{emptyMessage}</Text>
+      <Text style={[styles.emptyHint, { color: themeColors.textSecondary }]}>{emptyHint}</Text>
     </View>
   );
 
@@ -103,6 +108,7 @@ const ListHandler = ({ listType }) => {
       <FlatList
         data={ingredientArray}
         ListEmptyComponent={ListEmpty}
+        contentContainerStyle={ingredientArray.length > 0 ? styles.listContent : undefined}
         renderItem={({ item }) => (
           <IngredientListing
             name={item.name}
@@ -126,7 +132,9 @@ const ListHandler = ({ listType }) => {
         <Snackbar
           visible={snackbarVisible.visible}
           onDismiss={() => setSnackbarVisible({ visible: false, item: null })}
-          action={{ label: 'Undo', onPress: handleUndoPress(snackbarVisible.item), }}>
+          action={{ label: 'Undo', onPress: handleUndoPress(snackbarVisible.item) }}
+          style={{ backgroundColor: themeColors.surface }}
+        >
           {snackbarVisible.item && `${snackbarVisible.item.name} has been deleted.`}
         </Snackbar>
       </View>
@@ -150,15 +158,27 @@ const styles = StyleSheet.create({
     zIndex: 20,
     width: '100%',
   },
+  listContent: {
+    paddingBottom: 80,
+  },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 24,
   },
+  emptyIcon: {
+    marginBottom: 16,
+  },
   emptyText: {
     fontSize: 16,
     textAlign: 'center',
+  },
+  emptyHint: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginTop: 12,
+    fontStyle: 'italic',
   },
 });
 

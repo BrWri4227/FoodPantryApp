@@ -1,5 +1,6 @@
   import React, { useRef, useState, useContext } from 'react';
-  import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+  import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+  import { Ionicons } from '@expo/vector-icons';
   import { RectButton } from 'react-native-gesture-handler';
   import Swipeable from 'react-native-gesture-handler/Swipeable';
   import EditModal from './EditModal';
@@ -98,10 +99,9 @@
                 <Text style={[styles.quantity_text, { color: themeColors.text }]}>Qty:{quantity}</Text>
                 <Text style={[styles.stock_text, { color: themeColors.textSecondary }]}>{pantryStock}</Text>
               </View>
-              <Image
-            source={require('../assets/swipe.png')}
-            style={styles.icon}
-          />
+              <View style={styles.swipeIcon}>
+                <Ionicons name="swap-horizontal" size={22} color={themeColors.textSecondary} />
+              </View>
           </View>
         </View>
         </TouchableOpacity>
@@ -149,12 +149,15 @@
       color: 'white',
       fontWeight: 'bold',
     },
-    icon: {
-      width: 40,
-      height: 40,
-    },
     qtyContainer: {
       flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+    },
+    swipeIcon: {
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingLeft: 4,
     },
     stock_text: {
       fontSize: 12,
