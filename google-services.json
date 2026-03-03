@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1043756889453",
+    "project_id": "simplepantry-971f6",
+    "storage_bucket": "simplepantry-971f6.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1043756889453:android:6a40d90debbac019a51664",
+        "android_client_info": {
+          "package_name": "com.simplepantry"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAZEsKpt3Q2nBT3HGuQgdN6UoYFV4llcbE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

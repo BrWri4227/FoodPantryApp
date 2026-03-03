@@ -5,15 +5,13 @@ import { TouchableOpacity } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
 import { useDispatch } from 'react-redux';
 import { addGroceryItem } from '../redux/pantryStore';
+import { spoonacularApiKey } from '../appConfig';
 
 const RecipeContent = () => {
   const route = useRoute();
   const dispatch = useDispatch();
   const { recipeData } = route.params;
-  // console.log(recipeData);
-  // const apiKey = `d0eb5aa1af624179b18615d5122b9d27`
-  const apiKey = `a7e807b2f5f845f0874815c6508f2044`
-  const apiURL = `https://api.spoonacular.com/recipes/${recipeData.id}/information?apiKey=${apiKey}&includeNutrition=false`;
+  const apiURL = `https://api.spoonacular.com/recipes/${recipeData.id}/information?apiKey=${spoonacularApiKey}&includeNutrition=false`;
   const [recipeInfo, setRecipeInfo] = useState({});
   const [sourceURL, setSourceURL] = useState('');
   const [isLoading, setIsLoading] = useState(true);

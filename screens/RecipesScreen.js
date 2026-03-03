@@ -3,9 +3,9 @@ import { ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import RecipeListing from '../components/RecipeListing';
 import { useNavigation } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
+import { spoonacularApiKey } from '../appConfig';
 
 const Recipes = () => {
-    const apiKey = `a7e807b2f5f845f0874815c6508f2044`
     const navigation = useNavigation();
     const pantryItems = useSelector(state => state.pantryItems);
     const [loading, setLoading] = useState(true);
@@ -43,7 +43,7 @@ const Recipes = () => {
     };
 
     const getAPIURL = (ingredientList) => {
-        return `https://api.spoonacular.com/recipes/findByIngredients?ingredients=${ingredientList}&number=5&ranking=1&apiKey=${apiKey}`;
+        return `https://api.spoonacular.com/recipes/findByIngredients?ingredients=${ingredientList}&number=5&ranking=1&apiKey=${spoonacularApiKey}`;
     }
 
     return (

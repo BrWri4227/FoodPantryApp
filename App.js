@@ -2,7 +2,8 @@ import { React, useEffect } from 'react';
 import { NavigationContainer, useFocusEffect } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { PaperProvider } from 'react-native-paper';
 
 /* Bottom Tab Navigation Screens */
 import ShoppingList from './screens/ShoppingListScreen';
@@ -160,9 +161,12 @@ const BottomTabNavigator = () => {
   );
 };
 
+const PaperIcon = (props) => <MaterialCommunityIcons {...props} />;
+
 const App = () => {
   return (
     <Provider store={store}>
+      <PaperProvider settings={{ icon: PaperIcon }}>
       <NavigationContainer>
         <Stack.Navigator
           initialRouteName="StartUp"
@@ -179,6 +183,7 @@ const App = () => {
           <Stack.Screen name="RecipeContent" component={RecipeContent} />
         </Stack.Navigator>
       </NavigationContainer>
+      </PaperProvider>
     </Provider>
   );
 };
