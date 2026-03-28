@@ -3,7 +3,7 @@ import { createStore } from 'redux';
 
 const initialState = {
   currentPage: 'Shopping List',
-  loaded: 'false',
+  loaded: false,
   groceryItems: [
 
   ],

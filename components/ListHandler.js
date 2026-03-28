@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useCallback, useContext } from 'react';
 import { View, StyleSheet, FlatList, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import IngredientListing from './IngredientListing';
@@ -15,11 +15,11 @@ const ListHandler = ({ listType }) => {
   const dispatch = useDispatch();
 
   const [snackbarVisible, setSnackbarVisible] = useState({ visible: false, item: null });
-  const toggleSnackbar = (item) => {
+  const toggleSnackbar = useCallback((item) => {
     setSnackbarVisible({ visible: true, item });
-  };
+  }, []);
 
-  const handleUndoPress = (item) => () => {
+  const handleUndoPress = useCallback((item) => () => {
     if (!item) return;
     const id = generateStableId();
     if (listType === 'pantry') {
@@ -28,64 +28,47 @@ const ListHandler = ({ listType }) => {
       dispatch(addGroceryItem({ id, name: item.name, quantity: item.quantity }));
     }
     setSnackbarVisible({ visible: false, item: null });
-  };
+  }, [dispatch, listType]);
 
-  let ingredientArray;
-  let otherList;
+  const groceryItems = useSelector(state => state.groceryItems);
+  const pantryItems = useSelector(state => state.pantryItems);
 
-  if (listType === 'pantry') {
-    ingredientArray = useSelector(state => state.pantryItems);
-    otherList = useSelector(state => state.groceryItems);
-  } else {
-    ingredientArray = useSelector(state => state.groceryItems);
-    otherList = useSelector(state => state.pantryItems);
-  }
+  const ingredientArray = listType === 'pantry' ? pantryItems : groceryItems;
+  const otherList = listType === 'pantry' ? groceryItems : pantryItems;
 
-  const removeFromList = (item) => {
-
+  const removeFromList = useCallback((item) => {
     if (listType === 'pantry') {
       dispatch(removePantryItem(item));
     } else {
       dispatch(removeGroceryItem(item));
     }
-  };
+  }, [dispatch, listType]);
 
-  
-  const containsItem = (list, name) => {
-    return list.some(item => item.name === name);
-  }
-
-  const handleQuantityChange = (itemName, newQuantity, currentPage) => {
+  const handleQuantityChange = useCallback((itemName, newQuantity, currentPage) => {
     dispatch(setItemQuantity(itemName, newQuantity, currentPage));
-  };
+  }, [dispatch]);
 
-
-
-  const sendToPantry = (item) => {
+  const sendToPantry = useCallback((item) => {
     const id = generateStableId();
     if (listType === 'pantry') {
       const qty = parseInt(item.quantity, 10) || 1;
-      if (containsItem(otherList, item.name)) {
-        const matchedItem = otherList.find((listItem) => listItem.name === item.name);
-        if (matchedItem) {
-          handleQuantityChange(item.name, parseInt(matchedItem.quantity, 10) + qty, 'Shopping List');
-        }
+      const matchedItem = otherList.find((listItem) => listItem.name === item.name);
+      if (matchedItem) {
+        handleQuantityChange(item.name, parseInt(matchedItem.quantity, 10) + qty, 'Shopping List');
       } else {
         dispatch(addGroceryItem({ id, name: item.name, quantity: String(qty) }));
       }
       dispatch(removePantryItem(item));
     } else {
-      if (containsItem(otherList, item.name)) {
-        const matchedItem = otherList.find((listItem) => listItem.name === item.name);
-        if (matchedItem) {
-          handleQuantityChange(item.name, parseInt(matchedItem.quantity, 10) + parseInt(item.quantity, 10), 'Pantry');
-        }
+      const matchedItem = otherList.find((listItem) => listItem.name === item.name);
+      if (matchedItem) {
+        handleQuantityChange(item.name, parseInt(matchedItem.quantity, 10) + parseInt(item.quantity, 10), 'Pantry');
       } else {
         dispatch(addPantryItem({ id, name: item.name, quantity: item.quantity }));
       }
       dispatch(removeGroceryItem(item));
     }
-  };
+  }, [dispatch, listType, otherList, handleQuantityChange]);
 
   const emptyMessage = listType === 'pantry'
     ? 'Your pantry is empty. Tap + to add items.'
@@ -109,20 +92,19 @@ const ListHandler = ({ listType }) => {
         data={ingredientArray}
         ListEmptyComponent={ListEmpty}
         contentContainerStyle={ingredientArray.length > 0 ? styles.listContent : undefined}
-        renderItem={({ item }) => (
-          <IngredientListing
-            name={item.name}
-            quantity={item.quantity}
-            onDelete={() => { 
-              removeFromList(item)               
-              toggleSnackbar(item);}
-          }
-            sendToPantry={() => {
-              sendToPantry(item)}
-            }
-            list={listType}
-          />
-        )}
+        renderItem={({ item }) => {
+          const crossItem = otherList.find((o) => o.name.toLowerCase() === item.name.toLowerCase());
+          return (
+            <IngredientListing
+              name={item.name}
+              quantity={item.quantity}
+              crossListQuantity={crossItem?.quantity ?? '0'}
+              onDelete={() => { removeFromList(item); toggleSnackbar(item); }}
+              sendToPantry={() => sendToPantry(item)}
+              list={listType}
+            />
+          );
+        }}
         keyExtractor={(item) => item.id.toString()}
       />
       <View style={styles.addButtonContainer}>

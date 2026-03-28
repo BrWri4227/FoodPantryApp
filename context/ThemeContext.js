@@ -16,13 +16,16 @@ export function ThemeProvider({ children }) {
   const [theme, setThemeState] = useState('light');
 
   useEffect(() => {
+    let mounted = true;
     AsyncStorage.getItem(THEME_STORAGE_KEY).then((stored) => {
+      if (!mounted) return;
       if (stored === 'light' || stored === 'dark') {
         setThemeState(stored);
       } else {
         setThemeState(systemColorScheme === 'dark' ? 'dark' : 'light');
       }
     });
+    return () => { mounted = false; };
   }, [systemColorScheme]);
 
   const setTheme = useCallback((mode) => {

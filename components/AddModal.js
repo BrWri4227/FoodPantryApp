@@ -18,8 +18,6 @@ const AddModal = ({ visible = true, onClose }) => {
 
   const dispatch = useDispatch();
   const currentPage = useSelector((state) => state.currentPage);
-  const groceryArray = useSelector((state) => state.groceryItems);
-  const pantryArray = useSelector((state) => state.pantryItems);
 
   const resetState = () => {
     setInput('');

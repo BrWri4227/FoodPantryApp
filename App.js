@@ -25,6 +25,8 @@ import { SaveContext } from './context/SaveContext';
 import { loadFromAsyncStorage, saveToAsyncStorage } from './services/persistence';
 
 const db = getFirestore(app);
+const groceryCollectionRef = collection(db, 'shopping');
+const pantryCollectionRef = collection(db, 'pantry');
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -38,37 +40,26 @@ const BottomTabNavigator = () => {
   const [saveSuccessVisible, setSaveSuccessVisible] = useState(false);
   const saveTimeoutRef = useRef(null);
 
-  const groceryCollectionRef = collection(db, 'shopping');
-  const pantryCollectionRef = collection(db, 'pantry');
-
   const uploadGroceryItemsToFirestore = useCallback(async () => {
     const items = store.getState().groceryItems;
-    try {
-      const batch = writeBatch(db);
-      const snapshot = await getDocs(groceryCollectionRef);
-      snapshot.docs.forEach((d) => batch.delete(d.ref));
-      items.forEach((item) => {
-        batch.set(doc(groceryCollectionRef), item);
-      });
-      await batch.commit();
-    } catch (err) {
-      console.error('Failed to upload grocery items:', err);
-    }
+    const batch = writeBatch(db);
+    const snapshot = await getDocs(groceryCollectionRef);
+    snapshot.docs.forEach((d) => batch.delete(d.ref));
+    items.forEach((item) => {
+      batch.set(doc(groceryCollectionRef), item);
+    });
+    await batch.commit();
   }, []);
 
   const uploadPantryItemsToFirestore = useCallback(async () => {
     const items = store.getState().pantryItems;
-    try {
-      const batch = writeBatch(db);
-      const snapshot = await getDocs(pantryCollectionRef);
-      snapshot.docs.forEach((d) => batch.delete(d.ref));
-      items.forEach((item) => {
-        batch.set(doc(pantryCollectionRef), item);
-      });
-      await batch.commit();
-    } catch (err) {
-      console.error('Failed to upload pantry items:', err);
-    }
+    const batch = writeBatch(db);
+    const snapshot = await getDocs(pantryCollectionRef);
+    snapshot.docs.forEach((d) => batch.delete(d.ref));
+    items.forEach((item) => {
+      batch.set(doc(pantryCollectionRef), item);
+    });
+    await batch.commit();
   }, []);
 
   const saveBothToFirestore = useCallback(async () => {
@@ -76,13 +67,15 @@ const BottomTabNavigator = () => {
     try {
       await Promise.all([uploadGroceryItemsToFirestore(), uploadPantryItemsToFirestore()]);
       setSaveSuccessVisible(true);
+    } catch (err) {
+      console.error('Failed to save to Firestore:', err);
     } finally {
       setIsSaving(false);
     }
   }, [uploadGroceryItemsToFirestore, uploadPantryItemsToFirestore]);
 
   useEffect(() => {
-    if (loaded !== 'false') return;
+    if (loaded) return;
     let cancelled = false;
 
     const loadData = async () => {
@@ -92,7 +85,7 @@ const BottomTabNavigator = () => {
 
         dispatch(setGroceryItems(localGrocery));
         dispatch(setPantryItems(localPantry));
-        if (!cancelled) dispatch(setLoad('true'));
+        if (!cancelled) dispatch(setLoad(true));
 
         const [pantrySnap, grocerySnap] = await Promise.all([
           getDocs(collection(db, 'pantry')),
@@ -109,7 +102,7 @@ const BottomTabNavigator = () => {
         }
       } catch (err) {
         console.error('Failed to load:', err);
-        if (!cancelled) dispatch(setLoad('true'));
+        if (!cancelled) dispatch(setLoad(true));
       }
     };
 
@@ -147,7 +140,7 @@ const BottomTabNavigator = () => {
 
   const { colors: themeColors } = React.useContext(ThemeContext);
 
-  const showLoading = loaded === 'false';
+  const showLoading = !loaded;
 
   return (
     <SaveContext.Provider value={{ saveBothToFirestore, isSaving }}>

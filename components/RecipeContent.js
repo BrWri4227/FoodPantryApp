@@ -93,13 +93,13 @@ const RecipeContent = () => {
         </View>
         <Text style={[styles.sectionTitle, { color: themeColors.text }]}>Ingredients:</Text>
         {(recipeData.missedIngredients ?? []).map((ingredient, index) => (
-          <View key={index} style={styles.ingredientContainer}>
+          <View key={ingredient.id ?? index} style={styles.ingredientContainer}>
             <Ionicons name="close-circle-outline" size={24} color={themeColors.error} style={styles.icon} />
             <Text style={[styles.ingredient, { color: themeColors.text }]}>{ingredient.original}</Text>
           </View>
         ))}
         {(recipeData.usedIngredients ?? []).map((ingredient, index) => (
-          <View key={index} style={styles.ingredientContainer}>
+          <View key={ingredient.id ?? index} style={styles.ingredientContainer}>
             <Ionicons name="checkmark-circle-outline" size={24} color={themeColors.primary} style={styles.icon} />
             <Text style={[styles.ingredient, { color: themeColors.text }]}>{ingredient.original}</Text>
           </View>

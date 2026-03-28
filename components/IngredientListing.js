@@ -4,10 +4,9 @@
   import { RectButton } from 'react-native-gesture-handler';
   import Swipeable from 'react-native-gesture-handler/Swipeable';
   import EditModal from './EditModal';
-  import { useSelector } from 'react-redux';
   import { ThemeContext } from '../context/ThemeContext';
 
-  const IngredientListing = ({ name, quantity, onDelete, sendToPantry, list }) => {
+  const IngredientListing = ({ name, quantity, crossListQuantity, onDelete, sendToPantry, list }) => {
     const swipeableRef = useRef(null);
     const { colors: themeColors } = useContext(ThemeContext);
     const [isModalVisible, setModalVisible] = useState(false);
@@ -22,19 +21,7 @@
     let leftText;
     let rightText;
 
-    var pantryStock = "";
-    
-
-    if (list === 'pantry') {
-      const groceryItems = useSelector(state => state.groceryItems);
-      const fetchedItem = groceryItems.find(item => item.name.toLowerCase() === name.toLowerCase());
-      pantryStock = (fetchedItem?.quantity ?? '0') + ' in shopping list';
-    } else {
-      const pantryItems = useSelector(state => state.pantryItems);
-      const fetchedItem = pantryItems.find(item => item.name.toLowerCase() === name.toLowerCase());
-      pantryStock = (fetchedItem?.quantity ?? '0') + ' in pantry';
-    }
-
+    const pantryStock = (crossListQuantity ?? '0') + (list === 'pantry' ? ' in shopping list' : ' in pantry');
 
     if (list === 'pantry') {
       leftText = ' Remove from pantry';
